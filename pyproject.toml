@@ -8,6 +8,8 @@ authors = ["Lex Chen <clang2you@outlook.com>"]
 python = "^3.8"
 pyserial = "^3.4"
 pymysql = "^0.9.3"
+pyzmq = "^19.0.0"
+colorama = "^0.4.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

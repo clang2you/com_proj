@@ -1,7 +1,11 @@
 README.rst
 setup.py
 com_proj/__init__.py
+com_proj/serial_test.py
 com_proj.egg-info/PKG-INFO
 com_proj.egg-info/SOURCES.txt
 com_proj.egg-info/dependency_links.txt
+com_proj.egg-info/requires.txt
 com_proj.egg-info/top_level.txt
+com_proj/ConfigHelper/cfgParser.py
+com_proj/DbHelper/mysqlHelper.py
