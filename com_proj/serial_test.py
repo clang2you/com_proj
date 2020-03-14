@@ -5,7 +5,9 @@ import threading
 import configparser
 import pymysql
 import zmq
+import os
 from datetime import datetime
+from colorama import Fore, Back, Style
 
 test_list = []
 
@@ -17,9 +19,9 @@ class MQService:
         self.socket.bind("tcp://*:%s" % self.port)
 
     def WhenDataComesSendMessage(self):
-        topic = "Updated at："
+        topic = "Updated@"
         messagedata = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-        print("%s %s" % (topic, messagedata))
+        print(Back.GREEN + Fore.BLACK + "%s%s" % (topic, messagedata) + Style.RESET_ALL)
         self.socket.send_string("%s%s" % (topic, messagedata))
 
 class Cfg:
@@ -67,8 +69,8 @@ class SerThread:
             self.waitEnd.wait()
     
     def start(self):
-        self.rfile = open(self.rfname, 'w')
-        self.sfile = open(self.sfname, 'w')
+        # self.rfile = open(self.rfname, 'w')
+        # self.sfile = open(self.sfname, 'w')
         self.data_com.open()
 
         if self.data_com.isOpen():
@@ -90,14 +92,14 @@ class SerThread:
     def Reader(self):
         while self.alive:
             try:
-                time.sleep(0.1)
+                time.sleep(0.05)
                 n = self.data_com.inWaiting()
                 data = ''
                 if n:
                     data = self.data_com.read(n).decode('gbk')
                     print ('recv'+' '+time.strftime("%Y-%m-%d %X")+' '+data.strip())
-                    test_list.append('recv'+' '+time.strftime("%Y-%m-%d %X")+' '+data.strip())
-                    print (time.strftime("%Y-%m-%d %X:")+data.strip(),file=self.rfile)
+                    test_list.append('Pin:'+data.strip())
+                    # print (time.strftime("%Y-%m-%d %X:")+data.strip(),file=self.rfile)
                     if len(data) == 1 and ord(data[len(data) - 1]) == 113:
                         break
             except Exception as ex:
@@ -105,18 +107,22 @@ class SerThread:
         
     def func1(self):
         while len(test_list) > 0:
-            # time.sleep(0.1)
+            time.sleep(1)
             for item in test_list:
                 # time.sleep(1)
-                print("已接收到以下数据(数据总数: %s)：" % len(test_list))
-                print("已读取到的com口数据：" + item)
+                print("\n" + Back.YELLOW + Fore.BLACK + "===========START===========" + Style.RESET_ALL)
+                print(Style.RESET_ALL + "已接收到的数据总条数: " + Fore.RED +  "%s"  % len(test_list))
+                print(Style.RESET_ALL + "正在处理数据：" + Fore.MAGENTA + item.replace('Pin:', '针脚=>'))
                 self.dbHandler.InsertDataToDb("01")
-                print("数据库写入完成")
+                # print(Fore.BLUE + "数据库写入完成")
                 self.mq_service.WhenDataComesSendMessage()
                 test_list.remove(item)
-                print("剩余 %s 条数据未处理。" % len(test_list))
-        print('当前线程数为{}'.format(threading.activeCount()))
-        t=threading.Timer(0.5,self.func1)
+                leftCountStr = Style.RESET_ALL + "剩余"  + Fore.BLUE + "%s"  % len(test_list) +  Style.RESET_ALL + "条数据未处理。"
+                finishCountStr = Style.RESET_ALL +  Fore.BLUE + "所有数据已写入数据库。" +  Style.RESET_ALL 
+                print(finishCountStr if len(test_list) == 0 else leftCountStr)
+                print(Back.LIGHTCYAN_EX + Fore.BLACK  + "===========STOP============" + Style.RESET_ALL + "\n")
+        # print('当前线程数为{}'.format(threading.activeCount()))
+        t=threading.Timer(1,self.func1)
         t.start()
 
     def Sender(self):
@@ -157,6 +163,19 @@ class DbHandler():
                 password=self.db_password
             )
     
+        def runQuerySql(self, sql):
+            db_conn = self.connectToDb()
+            cursor = db_conn.cursor()
+            results = []
+            try:
+                cursor.execute('use %s' % self.db_name)
+                cursor.execute(sql)
+                results = cursor.fetchall()
+            finally:
+                cursor.close()
+                db_conn.close()
+            return results
+
     def runNonQuerySql(self, sql):
         db_conn = self.connectToDb()
         cursor = db_conn.cursor()
@@ -174,21 +193,30 @@ class DbHandler():
     def InsertDataToDb(self, btn_pos):
         sql = "INSERT INTO com_input(btn_pos, line) values('{}', '{}')".format(btn_pos, self.cfg.line_name)
         self.runNonQuerySql(sql)
+    
+    def GetTapCountAtRealtime(self):
+        sql = "select target from daily_target where dep ='{}' and date = '{}'".format(self.cfg.line_name, datetime.now().strftime('%Y-%m-%d'))
+        
 
 
 if __name__ == "__main__":
-    ser = SerThread()
-    try:
-        if ser.start():
-            ser.waiting()
-            ser.stop()
-        else:
-            pass
-    except Exception as ex:
-        print(ex)
+    # dbHandler = DbHandler()
+    # dbHandler.GetTapCountAtRealtime()
+    # ser = SerThread()
+    # try:
+    #     if ser.start():
+    #         ser.waiting()
+    #         ser.stop()
+    #     else:
+    #         pass
+    # except Exception as ex:
+    #     print(ex)
     
-    if ser.alive:
-        ser.stop()
+    # if ser.alive:
+    #     ser.stop()
 
-    print('End OK.')
-    del ser
+    # print('End OK.')
+    # del ser
+    main = "pycsharp.exe"
+    r_v = os.system(main)
+    print(r_v)
