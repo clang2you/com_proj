@@ -1,0 +1,5 @@
+c:\users\lex\documents\visual studio 2013\Projects\ledcontrol\ledcontrol\bin\Debug\ledcontrol.exe
+c:\users\lex\documents\visual studio 2013\Projects\ledcontrol\ledcontrol\bin\Debug\ledcontrol.pdb
+c:\users\lex\documents\visual studio 2013\Projects\ledcontrol\ledcontrol\obj\Debug\ledcontrol.csprojResolveAssemblyReference.cache
+c:\users\lex\documents\visual studio 2013\Projects\ledcontrol\ledcontrol\obj\Debug\ledcontrol.exe
+c:\users\lex\documents\visual studio 2013\Projects\ledcontrol\ledcontrol\obj\Debug\ledcontrol.pdb

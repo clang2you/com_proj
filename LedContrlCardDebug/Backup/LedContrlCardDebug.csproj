@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--Project was exported from assembly: C:\Users\lex\Downloads\T系列二次开发调试工具V2.2\LedContrlCardDebug.exe-->
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{CABE6C13-2217-4603-9D0B-6E68F09503F2}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>LedContrlCardDebug</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <ApplicationVersion>1.0.0.0</ApplicationVersion>
+    <FileAlignment>512</FileAlignment>
+    <RootNamespace>LedContrlCardDebug</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="UdpDevIo.cs" />
+    <Compile Include="TcpDevIo.cs" />
+    <Compile Include="UserControl1.cs" />
+    <Compile Include="Crc16.cs" />
+    <Compile Include="FormMain.cs" />
+    <Compile Include="PowerSwitch.cs" />
+    <Compile Include="SyncTime.cs" />
+    <Compile Include="SetLight.cs" />
+    <Compile Include="Pos2.cs" />
+    <Compile Include="DotLine.cs" />
+    <Compile Include="RecPar.cs" />
+    <Compile Include="PolygonPar.cs" />
+    <Compile Include="RoundPar.cs" />
+    <Compile Include="ArcPar.cs" />
+    <Compile Include="DispText.cs" />
+    <Compile Include="DispSymbol.cs" />
+    <Compile Include="TextWinAtt.cs" />
+    <Compile Include="TimeWinAtt.cs" />
+    <Compile Include="PlayControlx.cs" />
+    <Compile Include="SyncCommu.cs" />
+    <Compile Include="COMMU_ATT.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="COMMU_HEAD.cs" />
+    <Compile Include="COMMU_TAIL.cs" />
+    <Compile Include="ProtocolDevIo.cs" />
+    <Compile Include="Properties\Settings.Designer.cs" />
+    <Compile Include="Properties\Resources.Designer.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="FormMain.resx" />
+    <EmbeddedResource Include="Properties\Resources.resx" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

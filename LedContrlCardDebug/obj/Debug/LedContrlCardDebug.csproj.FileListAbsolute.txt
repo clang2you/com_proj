@@ -1,0 +1,4 @@
+C:\Users\lex\Downloads\LED Debug\LedContrlCardDebug\obj\Debug\LedContrlCardDebug.csprojResolveAssemblyReference.cache
+C:\Users\lex\Downloads\LED Debug\LedContrlCardDebug\obj\Debug\LedContrlCardDebug.FormMain.resources
+C:\Users\lex\Downloads\LED Debug\LedContrlCardDebug\obj\Debug\LedContrlCardDebug.Properties.Resources.resources
+C:\Users\lex\Downloads\LED Debug\LedContrlCardDebug\obj\Debug\LedContrlCardDebug.csproj.GenerateResource.Cache
