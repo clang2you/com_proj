@@ -3,3 +3,8 @@ c:\users\lex\documents\visual studio 2013\Projects\ledcontrol\ledcontrol\bin\Deb
 c:\users\lex\documents\visual studio 2013\Projects\ledcontrol\ledcontrol\obj\Debug\ledcontrol.csprojResolveAssemblyReference.cache
 c:\users\lex\documents\visual studio 2013\Projects\ledcontrol\ledcontrol\obj\Debug\ledcontrol.exe
 c:\users\lex\documents\visual studio 2013\Projects\ledcontrol\ledcontrol\obj\Debug\ledcontrol.pdb
+C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\obj\Debug\ledcontrol.exe
+C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\obj\Debug\ledcontrol.pdb
+C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\bin\Debug\ledcontrol.exe
+C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\bin\Debug\ledcontrol.pdb
+C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\obj\Debug\ledcontrol.csprojResolveAssemblyReference.cache

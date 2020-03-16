@@ -11,6 +11,7 @@ from colorama import Fore, Back, Style
 
 test_list = []
 
+
 class MQService:
     def __init__(self):
         self.port = "5556"
@@ -21,16 +22,18 @@ class MQService:
     def WhenDataComesSendMessage(self):
         topic = "Updated@"
         messagedata = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-        print(Back.GREEN + Fore.BLACK + "%s%s" % (topic, messagedata) + Style.RESET_ALL)
+        print(Back.GREEN + Fore.BLACK + "%s%s" %
+              (topic, messagedata) + Style.RESET_ALL)
         self.socket.send_string("%s%s" % (topic, messagedata))
+
 
 class Cfg:
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.ReadConfigINI()
-    
+
     def ReadConfigINI(self):
-        self.config.read('configuration.ini')
+        self.config.read('configuration.ini', encoding="utf-8")
         self.db_config = self.config["MySQL"]
         self.line_config = self.config["Line"]
         self.db_ip = self.db_config["IP"]
@@ -40,10 +43,8 @@ class Cfg:
         self.line_name = self.line_config["NAME"]
         self.com_config = self.config["COM"]
         self.data_com = self.com_config["DATA"]
-        self.disp1_com = self.com_config["DISPLAY1"]
-        self.disp2_com = self.com_config["DISPLAY2"]
-        self.disp3_com = self.com_config["DISPLAY3"]
-        
+        self.paraType = self.config["TYPE"]
+
 
 class SerThread:
     def __init__(self):
@@ -63,14 +64,12 @@ class SerThread:
 
         self.dbHandler = DbHandler()
         self.mq_service = MQService()
-    
+
     def waiting(self):
         if not self.waitEnd is None:
             self.waitEnd.wait()
-    
+
     def start(self):
-        # self.rfile = open(self.rfname, 'w')
-        # self.sfile = open(self.sfname, 'w')
         self.data_com.open()
 
         if self.data_com.isOpen():
@@ -80,15 +79,20 @@ class SerThread:
             self.thread_read = threading.Thread(target=self.Reader)
             self.thread_read.setDaemon(True)
 
-            self.thread_send = threading.Thread(target=self.func1)
-            self.thread_send.setDaemon(True)
+            self.thread_insert_to_db = threading.Thread(target=self.func1)
+            self.thread_insert_to_db.setDaemon(True)
+
+            self.thread_sender = threading.Thread(target=self.Sender)
+            self.thread_sender.setDaemon(True)
 
             self.thread_read.start()
-            self.thread_send.start()
+            self.thread_insert_to_db.start()
+            self.thread_sender.start()
+
             return True
         else:
             return False
-    
+
     def Reader(self):
         while self.alive:
             try:
@@ -97,53 +101,62 @@ class SerThread:
                 data = ''
                 if n:
                     data = self.data_com.read(n).decode('gbk')
-                    print ('recv'+' '+time.strftime("%Y-%m-%d %X")+' '+data.strip())
+                    print('recv'+' '+time.strftime("%Y-%m-%d %X")+' '+data.strip())
                     test_list.append('Pin:'+data.strip())
                     # print (time.strftime("%Y-%m-%d %X:")+data.strip(),file=self.rfile)
                     if len(data) == 1 and ord(data[len(data) - 1]) == 113:
                         break
             except Exception as ex:
                 print(ex)
-        
+
     def func1(self):
         while len(test_list) > 0:
             time.sleep(1)
             for item in test_list:
                 # time.sleep(1)
-                print("\n" + Back.YELLOW + Fore.BLACK + "===========START===========" + Style.RESET_ALL)
-                print(Style.RESET_ALL + "已接收到的数据总条数: " + Fore.RED +  "%s"  % len(test_list))
-                print(Style.RESET_ALL + "正在处理数据：" + Fore.MAGENTA + item.replace('Pin:', '针脚=>'))
+                print("\n" + Back.YELLOW + Fore.BLACK +
+                      "===========START===========" + Style.RESET_ALL)
+                print(Style.RESET_ALL + "已接收到的数据总条数: " +
+                      Fore.RED + "%s" % len(test_list))
+                print(Style.RESET_ALL + "正在处理数据：" +
+                      Fore.MAGENTA + item.replace('Pin:', '针脚=>'))
                 self.dbHandler.InsertDataToDb("01")
                 # print(Fore.BLUE + "数据库写入完成")
+                main = "pycsharp.exe"
+                r_v = os.system(main)
+                print(r_v)
                 self.mq_service.WhenDataComesSendMessage()
                 test_list.remove(item)
-                leftCountStr = Style.RESET_ALL + "剩余"  + Fore.BLUE + "%s"  % len(test_list) +  Style.RESET_ALL + "条数据未处理。"
-                finishCountStr = Style.RESET_ALL +  Fore.BLUE + "所有数据已写入数据库。" +  Style.RESET_ALL 
+                leftCountStr = Style.RESET_ALL + "剩余" + Fore.BLUE + \
+                    "%s" % len(test_list) + Style.RESET_ALL + "条数据未处理。"
+                finishCountStr = Style.RESET_ALL + Fore.BLUE + "所有数据已写入数据库。" + Style.RESET_ALL
                 print(finishCountStr if len(test_list) == 0 else leftCountStr)
-                print(Back.LIGHTCYAN_EX + Fore.BLACK  + "===========STOP============" + Style.RESET_ALL + "\n")
+                print(Back.LIGHTCYAN_EX + Fore.BLACK +
+                      "===========STOP============" + Style.RESET_ALL + "\n")
         # print('当前线程数为{}'.format(threading.activeCount()))
-        t=threading.Timer(1,self.func1)
+        t = threading.Timer(0.5, self.func1)
         t.start()
 
     def Sender(self):
         while self.alive:
             try:
-                snddata = input("input data:\n")
-                self.data_com.write(snddata.encode('gbk'))
-                print('sent' + time.strftime("%Y-%m-%d %X"))
-                print(snddata, file=self.sfile)
+                if len(test_list) == 0 :
+                    runCmd = "ledcontrol.exe -r {} {} {} {} {} {} {} {} {}".format(*self.dbHandler.GetRealtimDatasFromDb())
+                    print(runCmd)
+                    os.system(runCmd)
             except Exception as ex:
                 print(ex)
-        
-        self.waitEnd.set()
-        self.alive = False
-    
+
+        t = threading.Timer(1, self.Sender)
+        t.start()
+
     def stop(self):
         self.alive = False
         if self.data_com.isOpen():
             self.data_com.close()
         self.rfile.close()
         self.sfile.close()
+
 
 class DbHandler():
     def __init__(self):
@@ -153,7 +166,8 @@ class DbHandler():
         self.db_password = self.cfg.db_passwd
         self.db_port = 3306
         self.db_name = self.cfg.db_name
-        
+        self.paraType = self.cfg.paraType
+
     def connectToDb(self):
         if self.db_name != None:
             return pymysql.connect(
@@ -162,19 +176,19 @@ class DbHandler():
                 user=self.db_user,
                 password=self.db_password
             )
-    
-        def runQuerySql(self, sql):
-            db_conn = self.connectToDb()
-            cursor = db_conn.cursor()
-            results = []
-            try:
-                cursor.execute('use %s' % self.db_name)
-                cursor.execute(sql)
-                results = cursor.fetchall()
-            finally:
-                cursor.close()
-                db_conn.close()
-            return results
+
+    def runQuerySql(self, sql):
+        db_conn = self.connectToDb()
+        cursor = db_conn.cursor()
+        results = []
+        try:
+            cursor.execute('use %s' % self.db_name)
+            cursor.execute(sql)
+            results = cursor.fetchall()
+        finally:
+            cursor.close()
+            db_conn.close()
+        return results
 
     def runNonQuerySql(self, sql):
         db_conn = self.connectToDb()
@@ -189,34 +203,96 @@ class DbHandler():
         finally:
             cursor.close()
             db_conn.close()
-    
-    def InsertDataToDb(self, btn_pos):
-        sql = "INSERT INTO com_input(btn_pos, line) values('{}', '{}')".format(btn_pos, self.cfg.line_name)
-        self.runNonQuerySql(sql)
-    
-    def GetTapCountAtRealtime(self):
-        sql = "select target from daily_target where dep ='{}' and date = '{}'".format(self.cfg.line_name, datetime.now().strftime('%Y-%m-%d'))
-        
 
+    def runQuerySql(self, sql):
+        db_conn = self.connectToDb()
+        cursor = db_conn.cursor()
+        results = []
+        try:
+            cursor.execute('use %s' % self.db_name)
+            cursor.execute(sql)
+            results = cursor.fetchall()
+        finally:
+            cursor.close()
+            db_conn.close()
+        return results
+
+    def InsertDataToDb(self, btn_pos):
+        sql = "INSERT INTO com_input(btn_pos, line) values('{}', '{}')".format(
+            btn_pos, self.cfg.line_name)
+        self.runNonQuerySql(sql)
+
+    def GetTargetAtRealtime(self):
+        sql = "select target from daily_target where dep ='{}' and date = '{}'".format(
+            self.cfg.line_name, datetime.now().strftime('%Y-%m-%d'))
+        self.target = 0
+        for row in self.runQuerySql(sql):
+            self.target = int(row[0])
+        return self.target
+
+    def GetTapAtRealtime(self):
+        self.GetTargetAtRealtime()
+        if self.target == 0:
+            return 0
+        sql = "select amStartTime, amStopTime, pmStartTime, pmStopTime, amWorkHours, totalWorkHours from workingtimeperiod where line = '{}'".format(
+            self.cfg.line_name)
+        for row in self.runQuerySql(sql):
+            self.amStartTime = datetime.strptime(
+                datetime.now().strftime("%y-%m-%d ") + row[0], "%y-%m-%d %H:%M")
+            self.amStopTime = datetime.strptime(
+                datetime.now().strftime("%y-%m-%d ") + row[1], "%y-%m-%d %H:%M")
+            self.pmStartTime = datetime.strptime(
+                datetime.now().strftime("%y-%m-%d ") + row[2], "%y-%m-%d %H:%M")
+            self.pmStopTime = datetime.strptime(
+                datetime.now().strftime("%y-%m-%d ") + row[3], "%y-%m-%d %H:%M")
+            self.amWorkHours = row[4]
+            self.totalWorkHours = row[5]
+        if datetime.now() > self.pmStopTime:
+            self.currentHours = self.totalWorkHours
+        elif datetime.now() > self.pmStartTime:
+            self.currentHours = round(
+                (datetime.now() - self.pmStartTime).seconds / 3600, 2) + self.amWorkHours
+        elif datetime.now() < self.amStopTime and datetime.now() > self.amStartTime:
+            self.currentHours = round(
+                (datetime.now() - self.amStartTime).seconds / 3600, 2)
+        tapOutput = int(
+            self.target * (self.currentHours / self.totalWorkHours))
+        return tapOutput
+
+    def GetRealtimDatasFromDb(self):
+        paraList = []
+        sql = """select sum(if(type = '{0}', qty, 0)) as {0},
+        sum(if(type = '{1}', qty, 0)) as {1},
+        sum(if(type = '{2}', qty, 0)) as {2},
+        sum(if(type = '{3}', qty, 0)) as {3},
+        sum(if(type = '{4}', qty, 0)) as {4},
+        sum(if(type = '{5}', qty, 0)) as {5},
+        sum(if(defType is not NULL, qty, 0)) as {6}
+        from realtime_input WHERE TO_DAYS(NOW()) = TO_DAYS(time)""".format(self.paraType["1"], 
+        self.paraType["2"], self.paraType["3"], self.paraType["4"], self.paraType["5"], self.paraType["6"], self.paraType["7"])
+        for row in self.runQuerySql(sql):
+            for item in row:
+                paraList.append(str(item) if item != None else str(0))
+        self.target = self.GetTargetAtRealtime()
+        self.currentTap = self.GetTapAtRealtime()
+        paraList.append(self.target)
+        paraList.append(self.currentTap)
+        return paraList
 
 if __name__ == "__main__":
-    # dbHandler = DbHandler()
-    # dbHandler.GetTapCountAtRealtime()
-    # ser = SerThread()
-    # try:
-    #     if ser.start():
-    #         ser.waiting()
-    #         ser.stop()
-    #     else:
-    #         pass
-    # except Exception as ex:
-    #     print(ex)
-    
-    # if ser.alive:
-    #     ser.stop()
+    os.system("ledcontrol.exe -i")
+    ser = SerThread()
+    try:
+        if ser.start():
+            ser.waiting()
+            ser.stop()
+        else:
+            pass
+    except Exception as ex:
+        print(ex)
 
-    # print('End OK.')
-    # del ser
-    main = "pycsharp.exe"
-    r_v = os.system(main)
-    print(r_v)
+    if ser.alive:
+        ser.stop()
+
+    print('End OK.')
+    del ser

@@ -14,56 +14,191 @@ namespace ledcontrol
     /// </summary>
     class Program
     {
-        
+
         static void Main(string[] args)
         {
-            SerialPort comPort = null;
+            Dictionary<string, SerialPort> screenPortDic = new Dictionary<string, SerialPort>();
+            screenPortDic.Add("入楦", new SerialPort("COM2", 9600));
+            screenPortDic.Add("贴底", new SerialPort("COM2", 9600));
+            screenPortDic.Add("包装", new SerialPort("COM2", 9600));
             if (args.Length < 1)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
                 Console.WriteLine("请输入正确的参数启动 LED 屏控制程序。");
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine("参数如下：ledcontrol.exe COM3(屏幕所连接串口名称) 名称=数量（有几个需要显示的就添加几组)");
+                Console.WriteLine("参数如下：-i 初始化屏幕");
+                Console.WriteLine("        ：-r 更新数据，参数为九组数量，顺序为：投料 包装 清洁度 针车不良 高胶 脱胶 目标产量 节拍 产量 总回收");
                 Console.ForegroundColor = ConsoleColor.White;
                 System.Environment.Exit(0);
             }
-            else 
+            else
             {
-                try
+                switch (args[0])
                 {
-                    comPort = new SerialPort();
-                    comPort.PortName = args[0];
-
-                }
-                catch (Exception ex) 
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("创建串口对象失败，错误信息如下：" + ex.Message);
-                    Console.ForegroundColor = ConsoleColor.White;
-                    System.Environment.Exit(0);
+                    case "-i":
+                        InitialLEDScreen(screenPortDic);
+                        break;
+                    case "-r":
+                        if (args.Length < 10) 
+                        {
+                            Console.ForegroundColor = ConsoleColor.DarkRed;
+                            Console.WriteLine("请输入正确的参数启动 LED 屏控制程序。");
+                            Console.ForegroundColor = ConsoleColor.DarkGreen;
+                            Console.WriteLine("参数如下：-i 初始化屏幕");
+                            Console.WriteLine("        ：-r 更新数据，参数为九组数量，顺序为：投料 包装 清洁度 针车不良 高胶 脱胶 目标产量 节拍 产量 总回收");
+                            Console.ForegroundColor = ConsoleColor.White;
+                            System.Environment.Exit(0);
+                        }
+                        string[] test = new string[] { args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9] };
+                        RefreshLEDQty(test, screenPortDic);
+                        break;
+                    default:
+                        break;
                 }
             }
 
             Dictionary<string, string> contentsDic = new Dictionary<string, string>();
-            switch (args.Length) 
+            switch (args.Length)
             {
                 case 6:
                     for (int i = 1; i < args.Length; i++)
                     {
                         string[] tempStrArr = args[i].Split('=');
                         KeyValuePair<string, string> kvp = new KeyValuePair<string, string>(tempStrArr[0], tempStrArr[1]);
-                        contentsDic.Add(kvp.Key, kvp.Value); 
+                        contentsDic.Add(kvp.Key, kvp.Value);
                     }
                     break;
             }
 
-            foreach (KeyValuePair<string, string> kvpItem in contentsDic) 
+            foreach (KeyValuePair<string, string> kvpItem in contentsDic)
             {
                 Console.WriteLine(kvpItem.Key);
                 Console.WriteLine(kvpItem.Value);
             }
         }
 
+        private static void RefreshLEDQty(string[] qty,Dictionary<string, SerialPort> comPorts) 
+        {
+            foreach (var key in comPorts.Keys)
+            {
+                switch (key.ToString())
+                {
+                    case "入楦":
+                        RefreshRuXuanLEDScreenQty(qty, comPorts[key.ToString()]);
+                        break;
+                    case "贴底":
+                        RefreshTieDiLEDScreenQty(qty, comPorts[key.ToString()]);
+                        break;
+                    default:
+                        RefreshBaoZhuangLEDScreenQty(qty, comPorts[key.ToString()]);
+                        break;
+                }
+            }
+        }
+
+        private static void RefreshRuXuanLEDScreenQty(string[] qtys, SerialPort comPort) 
+        {
+            CommWithLedController comm = new CommWithLedController(comPort, 255);
+            CountStringNoAndFillSpace(qtys);
+            comm.SendDataPack(qtys[2], 40, 0, 0, 16);
+            comm.SendDataPack(qtys[3], 40, 18, 0, 16);
+            comm.SendDataPack(qtys[0], 33, 54, 0, 16);
+            comm.SendDataPack(qtys[1], 105, 54, 0, 16);
+            comPort.Close();
+        }
+
+        private static void RefreshBaoZhuangLEDScreenQty(string[] qtys, SerialPort comPort)
+        {
+            CommWithLedController comm = new CommWithLedController(comPort, 255);
+            CountStringNoAndFillSpace(qtys);
+            comm.SendDataPack(qtys[7], 30, 0, 0, 16);
+            comm.SendDataPack(qtys[8], 110, 0, 0, 16);
+            comm.SendDataPack(qtys[0], 70, 18, 0, 16);
+            comm.SendDataPack(qtys[1], 70, 36, 0, 16);
+            comm.SendDataPack(qtys[6], 70, 54, 0, 16);
+            comPort.Close();
+        }
+
+
+        private static void RefreshTieDiLEDScreenQty(string[] qtys, SerialPort comPort)
+        {
+            CommWithLedController comm = new CommWithLedController(comPort, 255);
+            CountStringNoAndFillSpace(qtys);
+            comm.SendDataPack(qtys[4], 40, 0, 0, 16);
+            comm.SendDataPack(qtys[5], 40, 18, 0, 16);
+            comm.SendDataPack(qtys[0], 33, 54, 0, 16);
+            comm.SendDataPack(qtys[1], 105, 54, 0, 16);
+            comPort.Close();
+        }
+
+        private static string[] CountStringNoAndFillSpace(string[] qtys)
+        {
+            for (int i = 0; i < qtys.Length; i++)
+            {
+                if (qtys[i].Length < 4)
+                {
+                    int times = 4 - qtys[i].Length;
+                    for(int j = 0; j< times; j++)
+                    {
+                        qtys[i] = qtys[i] + " ";
+                    }
+                }
+            }
+            return qtys;
+        }
+
+        private static void InitialLEDScreen(Dictionary<string, SerialPort> comPorts) 
+        {
+            foreach (var key in comPorts.Keys) 
+            {
+                switch(key.ToString())
+                {
+                    case "入楦":
+                        InitialRuXuanLEDScreen(comPorts[key.ToString()]);
+                        break;
+                    case "贴底":
+                        InitialTieDiLEDScreen(comPorts[key.ToString()]);
+                        break;
+                    default:
+                        InitialBaoZhuangLEDScreen(comPorts[key.ToString()]);
+                        break;
+                }
+            }
+        }
+
+        private static void InitialRuXuanLEDScreen(SerialPort comPort)
+        {
+            CommWithLedController comm = new CommWithLedController(comPort, 255);
+            comm.SetScreenDisplayMode();
+            Console.WriteLine(comm.commuStatus);
+            comm.SendDataPack("清洁度 0", 0, 0, 0, 16);
+            comm.SendDataPack("针车不良 0", 0, 18, 0, 16);
+            comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
+            comPort.Close();
+        }
+
+        private static void InitialTieDiLEDScreen(SerialPort comPort) 
+        {
+            CommWithLedController comm = new CommWithLedController(comPort, 255);
+            comm.SetScreenDisplayMode();
+            Console.WriteLine(comm.commuStatus);
+            comm.SendDataPack("高胶 0", 0, 0, 0, 16);
+            comm.SendDataPack("脱胶 0", 0, 18, 0, 16);
+            comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
+            comPort.Close();
+        }
+
+        private static void InitialBaoZhuangLEDScreen(SerialPort comPort) 
+        {
+            CommWithLedController comm = new CommWithLedController(comPort, 255);
+            comm.SetScreenDisplayMode();
+            Console.WriteLine(comm.commuStatus);
+            comm.SendDataPack("目标0     节拍0", 0, 0, 0, 16);
+            comm.SendDataPack("加工投料 0", 0, 18, 0, 16);
+            comm.SendDataPack("包装数量 0", 0, 36, 0, 16);
+            comm.SendDataPack("回收数量 0", 0, 54, 0, 16);
+            comPort.Close();
+        }
     }
 
     class CommWithLedController
@@ -72,13 +207,18 @@ namespace ledcontrol
         private SyncCommu sSyncCommu;
         private byte cRxNumber;
         public static COMMU_ATT sCommuAtt;
-        private string resultText;
-        private int sndDataCount;
-        private byte[] pRxBuf = new byte[256];
-        private string sndStatus;
+        private byte[] pRxBuf = new byte[70];
+        private SerialPort comPort;
+        public string commuStatus;
+        private byte[] pCommuTx = new byte[70];
+        private byte[] pTxBuf = new byte[70];
+        private int txLength = 0;
 
-        private CommWithLedController(int screenId)
+        public CommWithLedController(SerialPort com, int screenId)
         {
+            this.comPort = com;
+            this.comPort.Open();
+            this.comPort.DataReceived += new SerialDataReceivedEventHandler(this.CheckReturnData);
             this.sSyncCommu.Head = (byte)253;
             CommWithLedController.sCommuAtt.ScreenId = Convert.ToByte(screenId);
             CommWithLedController.sCommuAtt.BaudRate = 9600; //串口波特率 9600 / 38400 /115200
@@ -86,92 +226,122 @@ namespace ledcontrol
             this.cRxNumber = (byte)0;
         }
 
-        //发送文本数据包到 LED 屏幕
-        public string SendDataPack(string text, int xPos, int yPos, int space, int fontSize, SerialPort comPort)
+        private void CheckReturnData(object sender, SerialDataReceivedEventArgs e)
         {
-            int Length = 0;
-            byte[] numArray2 = new byte[768];
-            byte[] numArray3 = new byte[1024];
-            byte[] bytes2 = Encoding.Default.GetBytes(text);
-            GenerateText(text, xPos, yPos, space, fontSize);
-            StructToBytes((object)this.sDispText, Marshal.SizeOf((object)this.sDispText)).CopyTo((Array)numArray2, 1);
-            int num1 = 1 + Marshal.SizeOf((object)this.sDispText);
-            bytes2.CopyTo((Array)numArray2, 1 + Marshal.SizeOf((object)this.sDispText));
-            Length = num1 + bytes2.Length;
-
-            //for (int index = 0; index < Length; ++index)
-            //{
-            //    if (numArray2[index] > (byte)15)
-            //    {
-            //        this.resultText = this.resultText + "0x" + Convert.ToString(numArray2[index], 16) + (object)',';
-            //    }
-            //    else
-            //    {
-            //        this.resultText = this.resultText + "0x0" + Convert.ToString(numArray2[index], 16) + (object)',';
-            //    }
-            //}
-
-            int commuPack = ProtocolDevIo.CreateCommuPack(numArray3, numArray2, CommWithLedController.sCommuAtt.ScreenId, CommWithLedController.sCommuAtt.ComNo, Convert.ToByte(Length));
-            //this.resultText = "";
-            for (int index = 0; index < commuPack; ++index)
+            int i = (int)this.cRxNumber;
+            for (this.cRxNumber += Convert.ToByte(this.comPort.BytesToRead); i < (int)this.cRxNumber; ++i)
             {
-                if (numArray3[index] > (byte)15)
+                this.pRxBuf[i] = Convert.ToByte(this.comPort.ReadByte());
+            }
+        }
+
+        public void CheckCommuStatus()
+        {
+            if (ProtocolDevIo.CheckCommuPack(this.pRxBuf, (int)this.cRxNumber))
+            {
+                if (this.pRxBuf[4] == (byte)0)
                 {
-                    this.resultText = this.resultText + "0x" + Convert.ToString(numArray3[index], 16) + (object)',';
+                    this.commuStatus = "发送成功";
+                    this.cRxNumber = (byte)0;
                 }
                 else
-                {
-                    this.resultText = this.resultText + "0x0" + Convert.ToString(numArray3[index], 16) + (object)',';
-                }
+                    this.commuStatus = "应用数据异常";
             }
-
-            using (comPort) 
+            else
             {
-                if (!comPort.IsOpen) 
+                this.commuStatus = "终端无返回";
+            }
+        }
+
+
+        // 初始化屏幕病设置显示模式为二次开发模式
+        public void SetScreenDisplayMode()
+        {
+            byte[] pBuf20 = new byte[32];
+            pBuf20[0] = 2;
+            pBuf20[1] = Convert.ToByte(0);
+            pTxBuf[0] = 5;
+            pBuf20.CopyTo(pTxBuf, 1);
+            int txLength = 3;
+            sCommuAtt.ScreenId = 255;
+            int commu_tx = ProtocolDevIo.CreateCommuPack(pCommuTx, pTxBuf, sCommuAtt.ScreenId, sCommuAtt.ComNo, Convert.ToByte(txLength));
+            comPort.Write(new byte[64], 0, commu_tx);
+            Thread.Sleep(100);
+            this.CleanLEDContents();//设置之后先清除屏幕内容
+        }
+
+        //清除屏幕内容
+        public void CleanLEDContents()
+        {
+            pTxBuf[0] = 16; //16是清屏幕的操作类型
+            int commu_tx = ProtocolDevIo.CreateCommuPack(pCommuTx, pTxBuf, sCommuAtt.ScreenId, sCommuAtt.ComNo, Convert.ToByte(1));
+            this.comPort.Write(pCommuTx, 0, commu_tx);
+            Thread.Sleep(200);
+            if (ProtocolDevIo.CheckCommuPack(this.pRxBuf, (int)this.cRxNumber))
+            {
+                if (this.pRxBuf[4] == (byte)0)
                 {
-                    comPort.Open();
+                    this.commuStatus = "清除屏幕指令发送成功";
+                    this.cRxNumber = (byte)0;
                 }
-                comPort.Write(numArray3, 0, commuPack);
-                this.sndDataCount = commuPack;
-                Thread.Sleep(1000);
-                if (this.cRxNumber > (byte)7)
+                else
+                    this.commuStatus = "清除屏幕指令应用数据异常";
+            }
+            else
+            {
+                this.commuStatus = "清除屏幕指令终端无返回";
+            }
+        }
+
+        //发送文本数据包到 LED 屏幕
+        public void SendDataPack(string text, int xPos, int yPos, int space, int fontSize)
+        {
+            byte[] pBuf20 = new byte[70];
+            pBuf20 = Encoding.Default.GetBytes(text);
+            sDispText.XPos = Convert.ToUInt16(xPos);
+            sDispText.YPos = Convert.ToUInt16(yPos);
+            sDispText.Space = Convert.ToByte(0);
+            sDispText.Leng = Convert.ToByte(pBuf20.Length);
+            sDispText.Font = Convert.ToByte(1);
+            sDispText.Size = Convert.ToByte(fontSize);
+            sDispText.Color = Convert.ToByte(1);
+            pCommuTx = new byte[70];
+            pTxBuf = new byte[70];
+            pTxBuf[0] = 23;
+            pBuf20 = new byte[32];
+            pBuf20 = StructToBytes(sDispText, Marshal.SizeOf(sDispText));
+            pBuf20.CopyTo(pTxBuf, 1);
+            txLength = 1 + Marshal.SizeOf(sDispText); ;
+            pBuf20 = Encoding.Default.GetBytes(text);
+            pBuf20.CopyTo(pTxBuf, 1 + Marshal.SizeOf(sDispText));
+            txLength += pBuf20.Length;
+            int com_tx = ProtocolDevIo.CreateCommuPack(pCommuTx, pTxBuf, sCommuAtt.ScreenId, sCommuAtt.ComNo, Convert.ToByte(txLength));
+            comPort.Write(pCommuTx, 0, com_tx);
+            Thread.Sleep(200);
+            if (this.cRxNumber > (byte)7)
+            {
+                if (ProtocolDevIo.CheckCommuPack(this.pRxBuf, (int)this.cRxNumber))
                 {
-                    if (ProtocolDevIo.CheckCommuPack(this.pRxBuf, (int)this.cRxNumber))
+                    if (this.pRxBuf[4] == (byte)0)
                     {
-                        if (this.pRxBuf[4] == (byte)0)
-                        {
-                            this.sndStatus = "数据发送成功:" + text;
-                        }
-                        else
-                        {
-                            this.sndStatus = "应用数据异常";
-                        }
+                        Console.WriteLine("文字内容：(" + text + ")发送成功");
+                        this.cRxNumber = (byte)0;
                     }
                     else
                     {
-                        this.sndStatus = "控制板未返回信号";
+                        Console.WriteLine("文字发送应用数据异常");
                     }
+
                 }
-                else 
+                else
                 {
-                    this.sndStatus = "控制板未返回信号";
+                    Console.WriteLine("文字发送终端无返回");
                 }
             }
-            return this.sndStatus;
-        }
-
-        //用于生成文本指令
-        private void GenerateText(string text, int xPos, int yPos, int space, int fontSize)
-        {
-            byte[] numArray = new byte[512];
-            byte[] bytes = Encoding.Default.GetBytes(text);
-            this.sDispText.XPos = Convert.ToUInt16(xPos);//x 坐标
-            this.sDispText.YPos = Convert.ToUInt16(yPos);//y 坐标
-            this.sDispText.Space = Convert.ToByte(space);//间距
-            this.sDispText.Leng = Convert.ToByte(bytes.Length);
-            this.sDispText.Font = Convert.ToByte(1);//字体选择宋体(0.自定义，1.宋体，2.楷体，3.黑体）
-            this.sDispText.Size = Convert.ToByte(fontSize);
-            this.sDispText.Color = Convert.ToByte(1);//字体颜色固定红色
+            else
+            {
+                Console.WriteLine("文字发送终端无返回");
+            }
         }
 
         // 结构体转 byte 数组
@@ -187,17 +357,6 @@ namespace ledcontrol
     }
 
     /// <summary>
-    /// struct 定时开关
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct PowerSwitch
-    {
-        public byte OptType;
-        public ushort OnTime;
-        public ushort OffTime;
-    }
-
-    /// <summary>
     /// struct 文本显示
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -210,21 +369,6 @@ namespace ledcontrol
         public byte Font;
         public byte Size;
         public byte Color;
-    }
-
-    /// <summary>
-    /// struct 校正时间
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct SyncTime
-    {
-        public byte Second;
-        public byte Minute;
-        public byte Hour;
-        public byte Day;
-        public byte Week;
-        public byte Month;
-        public byte Year;
     }
 
     /// <summary>
@@ -256,33 +400,6 @@ namespace ledcontrol
         public int Port;
     }
 
-    /// <summary>
-    /// struct 文本框
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct TextWinAtt
-    {
-        public byte Type;
-        public byte No;
-        public ushort XPos;
-        public ushort YPos;
-        public ushort XDot;
-        public ushort YDot;
-        public ushort Rev1;
-        public byte PlayStunt;
-        public byte PlaySpeed;
-        public byte PlayStay;
-        public byte PlayIsClear;
-        public byte PageStyle;
-        public byte VStyle;
-        public byte HStyle;
-        public byte Rev2;
-        public ushort CodeLeng;
-        public byte TextFont;
-        public byte TextSize;
-        public byte TextColor;
-    }
-
     //智新 LED 屏通讯协议（使用 dotPeek 反编译生成）
     internal class ProtocolDevIo
     {
@@ -294,25 +411,27 @@ namespace ledcontrol
           byte PackNo,
           byte Length)
         {
-            byte[] buf = new byte[264];
+            byte[] buf = new byte[32];
             buf[0] = PackNo;
             buf[1] = ObjId;
-            buf[2] = Convert.ToByte((int)Length + 7);
-            for (int index = 0; index < (int)Length; ++index)
-                buf[3 + index] = Src[index];
-            int num = (int)Crc16.Crc16Calculate((ushort)0, buf, (ushort)Convert.ToByte((int)Length + 3));
-            buf.CopyTo((Array)Dst, 1);
+            buf[2] = Convert.ToByte(Length + 7);
+            for (int i = 0; i < Length; i++)
+            {
+                buf[3 + i] = Src[i];
+            }
+            int crc = Crc16.Crc16Calculate(0, buf, Convert.ToByte(Length + 3));
+            buf.CopyTo(Dst, 1);
             Dst[0] = Convert.ToByte('S');
-            Dst[4 + (int)Length] = Convert.ToByte(num % 256);
-            Dst[4 + (int)Length + 1] = Convert.ToByte(num / 256);
-            Dst[4 + (int)Length + 2] = Convert.ToByte('@');
-            return 4 + (int)Length + 3;
+            Dst[4 + Length] = Convert.ToByte(crc % 256);
+            Dst[4 + Length + 1] = Convert.ToByte(crc / 256);
+            Dst[4 + Length + 2] = Convert.ToByte('@');
+            return 4 + Length + 3;
         }
 
         //根据返回的信息判断消息发送是否成功
         public static bool CheckCommuPack(byte[] RxPack, int Length)
         {
-            byte[] buf = new byte[1040];
+            byte[] buf = new byte[128];
             if (RxPack[0] != (byte)83 || RxPack[Length - 1] != (byte)64 || (RxPack[2] != (byte)0 || (int)RxPack[3] != Length))
                 return false;
             Buffer.BlockCopy((Array)RxPack, 1, (Array)buf, 0, Length - 1);
