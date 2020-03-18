@@ -140,8 +140,9 @@ class SerThread:
     def Sender(self):
         while self.alive:
             try:
-                if len(test_list) == 0 :
-                    runCmd = "ledcontrol.exe -r {} {} {} {} {} {} {} {} {}".format(*self.dbHandler.GetRealtimDatasFromDb())
+                if len(test_list) == 0:
+                    runCmd = "ledcontrol.exe -r {} {} {} {} {} {} {} {} {}".format(
+                        *self.dbHandler.GetRealtimDatasFromDb())
                     print(runCmd)
                     os.system(runCmd)
             except Exception as ex:
@@ -247,6 +248,7 @@ class DbHandler():
                 datetime.now().strftime("%y-%m-%d ") + row[3], "%y-%m-%d %H:%M")
             self.amWorkHours = row[4]
             self.totalWorkHours = row[5]
+        # print(self.amStopTime.strftime("%y-%m-%d %H:%M"))
         if datetime.now() > self.pmStopTime:
             self.currentHours = self.totalWorkHours
         elif datetime.now() > self.pmStartTime:
@@ -255,6 +257,8 @@ class DbHandler():
         elif datetime.now() < self.amStopTime and datetime.now() > self.amStartTime:
             self.currentHours = round(
                 (datetime.now() - self.amStartTime).seconds / 3600, 2)
+        elif datetime.now() > self.amStopTime and datetime.now() < self.pmStartTime:
+            self.currentHours = self.amWorkHours
         tapOutput = int(
             self.target * (self.currentHours / self.totalWorkHours))
         return tapOutput
@@ -268,8 +272,8 @@ class DbHandler():
         sum(if(type = '{4}', qty, 0)) as {4},
         sum(if(type = '{5}', qty, 0)) as {5},
         sum(if(defType is not NULL, qty, 0)) as {6}
-        from realtime_input WHERE TO_DAYS(NOW()) = TO_DAYS(time)""".format(self.paraType["1"], 
-        self.paraType["2"], self.paraType["3"], self.paraType["4"], self.paraType["5"], self.paraType["6"], self.paraType["7"])
+        from realtime_input WHERE TO_DAYS(NOW()) = TO_DAYS(time)""".format(self.paraType["1"],
+                                                                           self.paraType["2"], self.paraType["3"], self.paraType["4"], self.paraType["5"], self.paraType["6"], self.paraType["7"])
         for row in self.runQuerySql(sql):
             for item in row:
                 paraList.append(str(item) if item != None else str(0))
@@ -279,8 +283,29 @@ class DbHandler():
         paraList.append(self.currentTap)
         return paraList
 
+    def CallMySQLProcedure(self, procedureName):
+        db_conn = self.connectToDb()
+        cursor = db_conn.cursor()
+        data = ""
+        try:
+            cursor.execute('use %s' % self.db_name)
+            cursor.callproc(procedureName)
+            db_conn.commit()
+            data = cursor.fetchall()
+        except Exception as ex:
+            print(ex)
+            db_conn.rollback()
+        finally:
+            cursor.close()
+            db_conn.close()
+            return data
+
+
 if __name__ == "__main__":
     os.system("ledcontrol.exe -i")
+    dbHandler = DbHandler()
+    dbHandler.GetTapAtRealtime()
+    dbHandler.CallMySQLProcedure("move_data_to_history")
     ser = SerThread()
     try:
         if ser.start():

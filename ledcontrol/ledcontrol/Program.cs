@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.IO.Ports;
 using System.Threading;
+using ledcontrol;
+using System.Net.Sockets;
 
 namespace ledcontrol
 {
@@ -17,10 +19,26 @@ namespace ledcontrol
 
         static void Main(string[] args)
         {
-            Dictionary<string, SerialPort> screenPortDic = new Dictionary<string, SerialPort>();
-            screenPortDic.Add("入楦", new SerialPort("COM2", 9600));
-            screenPortDic.Add("贴底", new SerialPort("COM2", 9600));
-            screenPortDic.Add("包装", new SerialPort("COM2", 9600));
+            //Dictionary<string, SerialPort> screenPortDic = new Dictionary<string, SerialPort>();
+            //SerialPort led1Port = new SerialPort();
+            //led1Port.PortName = "COM1";
+            //led1Port.BaudRate = 9600;
+            //led1Port.DataBits = 8;
+            //screenPortDic.Add("入楦", led1Port);
+            //SerialPort led2Port = new SerialPort();
+            //led2Port.PortName = "COM1";
+            //led2Port.BaudRate = 9600;
+            //led2Port.DataBits = 8;
+            //screenPortDic.Add("贴底", led2Port);
+            //SerialPort led3Port = new SerialPort();
+            //led3Port.PortName = "COM1";
+            //led3Port.BaudRate = 9600;
+            //led3Port.DataBits = 8;
+            //screenPortDic.Add("包装", led3Port);
+            Dictionary<string, string[]> ipList = new Dictionary<string, string[]>();
+            ipList.Add("入楦", new string[] { "172.22.10.240", "5004" });
+            ipList.Add("贴底", new string[] { "172.22.10.240", "5005" });
+            ipList.Add("包装", new string[] { "172.22.10.240", "5006" });
             if (args.Length < 1)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
@@ -36,7 +54,8 @@ namespace ledcontrol
                 switch (args[0])
                 {
                     case "-i":
-                        InitialLEDScreen(screenPortDic);
+                        //Console.WriteLine("Hello");
+                        InitialLEDScreen(ipList);
                         break;
                     case "-r":
                         if (args.Length < 10) 
@@ -50,7 +69,7 @@ namespace ledcontrol
                             System.Environment.Exit(0);
                         }
                         string[] test = new string[] { args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9] };
-                        RefreshLEDQty(test, screenPortDic);
+                        RefreshLEDQty(test, ipList);
                         break;
                     default:
                         break;
@@ -77,58 +96,127 @@ namespace ledcontrol
             }
         }
 
-        private static void RefreshLEDQty(string[] qty,Dictionary<string, SerialPort> comPorts) 
+        private static void RefreshLEDQty(string[] qty,Dictionary<string, string[]> ipInfo = null, Dictionary<string, SerialPort> comPorts = null) 
         {
-            foreach (var key in comPorts.Keys)
+            if (comPorts != null)
             {
-                switch (key.ToString())
+                foreach (var key in comPorts.Keys)
                 {
-                    case "入楦":
-                        RefreshRuXuanLEDScreenQty(qty, comPorts[key.ToString()]);
-                        break;
-                    case "贴底":
-                        RefreshTieDiLEDScreenQty(qty, comPorts[key.ToString()]);
-                        break;
-                    default:
-                        RefreshBaoZhuangLEDScreenQty(qty, comPorts[key.ToString()]);
-                        break;
+                    switch (key.ToString())
+                    {
+                        case "入楦":
+                            RefreshRuXuanLEDScreenQty(qty, null,comPorts[key.ToString()]);
+                            break;
+                        case "贴底":
+                            RefreshTieDiLEDScreenQty(qty, null,comPorts[key.ToString()]);
+                            break;
+                        default:
+                            RefreshBaoZhuangLEDScreenQty(qty, null,comPorts[key.ToString()]);
+                            break;
+                    }
+                }
+            }
+            else 
+            {
+                foreach (var key in ipInfo.Keys)
+                {
+                    switch (key.ToString())
+                    {
+                        case "入楦":
+                            Console.ForegroundColor = ConsoleColor.DarkGreen;
+                            Console.WriteLine("入楦，Port：" + ipInfo["入楦"][1].ToString());
+                            Console.ForegroundColor = ConsoleColor.White;
+                            RefreshRuXuanLEDScreenQty(qty, ipInfo[key.ToString()]);
+                            break;
+                        case "贴底":
+                            Console.ForegroundColor = ConsoleColor.DarkGreen;
+                            Console.WriteLine("贴底，Port：" + ipInfo["贴底"][1].ToString());
+                            Console.ForegroundColor = ConsoleColor.White;
+                            RefreshTieDiLEDScreenQty(qty, ipInfo[key.ToString()]);
+                            break;
+                        default:
+                            Console.ForegroundColor = ConsoleColor.DarkGreen;
+                            Console.WriteLine("包装，Port：" + ipInfo["包装"][1].ToString());
+                            Console.ForegroundColor = ConsoleColor.White;
+                            RefreshBaoZhuangLEDScreenQty(qty, ipInfo[key.ToString()]);
+                            break;
+                    }
                 }
             }
         }
 
-        private static void RefreshRuXuanLEDScreenQty(string[] qtys, SerialPort comPort) 
+        private static void RefreshRuXuanLEDScreenQty(string[] qtys,string[] ipInfo = null, SerialPort comPort = null) 
         {
-            CommWithLedController comm = new CommWithLedController(comPort, 255);
-            CountStringNoAndFillSpace(qtys);
-            comm.SendDataPack(qtys[2], 40, 0, 0, 16);
-            comm.SendDataPack(qtys[3], 40, 18, 0, 16);
-            comm.SendDataPack(qtys[0], 33, 54, 0, 16);
-            comm.SendDataPack(qtys[1], 105, 54, 0, 16);
-            comPort.Close();
+            if (comPort != null)
+            {
+                CommWithLedController comm = new CommWithLedController(255, null, comPort);
+                CountStringNoAndFillSpace(qtys);
+                comm.SendDataPack(qtys[2], 40, 0, 0, 16);
+                comm.SendDataPack(qtys[3], 40, 18, 0, 16);
+                comm.SendDataPack(qtys[0], 33, 54, 0, 16);
+                comm.SendDataPack(qtys[1], 105, 54, 0, 16);
+                comPort.Close();
+            }
+            else 
+            {
+                CommWithLedController comm = new CommWithLedController(255, ipInfo);
+                CountStringNoAndFillSpace(qtys);
+                comm.SendDataPack(qtys[2], 40, 0, 0, 16, true);
+                comm.SendDataPack(qtys[3], 40, 18, 0, 16);
+                comm.SendDataPack(qtys[0], 33, 54, 0, 16);
+                comm.SendDataPack(qtys[1], 105, 54, 0, 16);
+            }
+            
         }
 
-        private static void RefreshBaoZhuangLEDScreenQty(string[] qtys, SerialPort comPort)
+        private static void RefreshBaoZhuangLEDScreenQty(string[] qtys, string[] ipInfo = null, SerialPort comPort = null)
         {
-            CommWithLedController comm = new CommWithLedController(comPort, 255);
-            CountStringNoAndFillSpace(qtys);
-            comm.SendDataPack(qtys[7], 30, 0, 0, 16);
-            comm.SendDataPack(qtys[8], 110, 0, 0, 16);
-            comm.SendDataPack(qtys[0], 70, 18, 0, 16);
-            comm.SendDataPack(qtys[1], 70, 36, 0, 16);
-            comm.SendDataPack(qtys[6], 70, 54, 0, 16);
-            comPort.Close();
+            if (comPort != null)
+            {
+                CommWithLedController comm = new CommWithLedController(255, null, comPort);
+                CountStringNoAndFillSpace(qtys);
+                comm.SendDataPack(qtys[7], 30, 0, 0, 16);
+                comm.SendDataPack(qtys[8], 110, 0, 0, 16);
+                comm.SendDataPack(qtys[0], 70, 18, 0, 16);
+                comm.SendDataPack(qtys[1], 70, 36, 0, 16);
+                comm.SendDataPack(qtys[6], 70, 54, 0, 16);
+                comPort.Close();
+            }
+            else 
+            {
+                CommWithLedController comm = new CommWithLedController(255, ipInfo);
+                CountStringNoAndFillSpace(qtys);
+                comm.SendDataPack(qtys[7], 33, 0, 0, 16, true);
+                comm.SendDataPack(qtys[8], 113, 0, 0, 16);
+                comm.SendDataPack(qtys[0], 70, 18, 0, 16);
+                comm.SendDataPack(qtys[1], 70, 36, 0, 16);
+                comm.SendDataPack(qtys[6], 70, 54, 0, 16);
+            }
         }
 
 
-        private static void RefreshTieDiLEDScreenQty(string[] qtys, SerialPort comPort)
+        private static void RefreshTieDiLEDScreenQty(string[] qtys, string[] ipInfo = null, SerialPort comPort = null)
         {
-            CommWithLedController comm = new CommWithLedController(comPort, 255);
-            CountStringNoAndFillSpace(qtys);
-            comm.SendDataPack(qtys[4], 40, 0, 0, 16);
-            comm.SendDataPack(qtys[5], 40, 18, 0, 16);
-            comm.SendDataPack(qtys[0], 33, 54, 0, 16);
-            comm.SendDataPack(qtys[1], 105, 54, 0, 16);
-            comPort.Close();
+            if (comPort != null)
+            {
+                CommWithLedController comm = new CommWithLedController(255, null, comPort);
+                CountStringNoAndFillSpace(qtys);
+                comm.SendDataPack(qtys[4], 40, 0, 0, 16);
+                comm.SendDataPack(qtys[5], 40, 18, 0, 16);
+                comm.SendDataPack(qtys[0], 33, 54, 0, 16);
+                comm.SendDataPack(qtys[1], 105, 54, 0, 16);
+                comPort.Close();
+            }
+            else 
+            {
+                CommWithLedController comm = new CommWithLedController(255,ipInfo);
+                CountStringNoAndFillSpace(qtys);
+                comm.SendDataPack(qtys[4], 40, 0, 0, 16, true);
+                comm.SendDataPack(qtys[5], 40, 18, 0, 16);
+                comm.SendDataPack(qtys[0], 33, 54, 0, 16);
+                comm.SendDataPack(qtys[1], 105, 54, 0, 16);
+            }
+            
         }
 
         private static string[] CountStringNoAndFillSpace(string[] qtys)
@@ -147,57 +235,133 @@ namespace ledcontrol
             return qtys;
         }
 
-        private static void InitialLEDScreen(Dictionary<string, SerialPort> comPorts) 
+        private static void InitialLEDScreen(Dictionary<string, string[]> ipInfo = null,Dictionary<string, SerialPort> comPorts = null) 
         {
-            foreach (var key in comPorts.Keys) 
+            if (comPorts != null)
             {
-                switch(key.ToString())
+                foreach (var key in comPorts.Keys)
                 {
-                    case "入楦":
-                        InitialRuXuanLEDScreen(comPorts[key.ToString()]);
-                        break;
-                    case "贴底":
-                        InitialTieDiLEDScreen(comPorts[key.ToString()]);
-                        break;
-                    default:
-                        InitialBaoZhuangLEDScreen(comPorts[key.ToString()]);
-                        break;
+                    switch (key.ToString())
+                    {
+                        case "入楦":
+                            InitialRuXuanLEDScreen(null, comPorts[key.ToString()]);
+                            break;
+                        case "贴底":
+                            InitialTieDiLEDScreen(null, comPorts[key.ToString()]);
+                            break;
+                        default:
+                            InitialBaoZhuangLEDScreen(null, comPorts[key.ToString()]);
+                            break;
+                    }
+                }
+            }
+            else 
+            {
+                foreach (var key in ipInfo.Keys)
+                {
+                    switch (key.ToString())
+                    {
+                        case "入楦":
+                            Console.ForegroundColor = ConsoleColor.DarkGreen;
+                            Console.WriteLine("入楦，Port：" + ipInfo["入楦"][1].ToString());
+                            Console.ForegroundColor = ConsoleColor.White;
+                            InitialRuXuanLEDScreen(ipInfo["入楦"]);
+                            break;
+                        case "贴底":
+                            Console.ForegroundColor = ConsoleColor.DarkGreen;
+                            Console.WriteLine("贴底，Port：" + ipInfo["贴底"][1].ToString());
+                            Console.ForegroundColor = ConsoleColor.White;
+                            InitialTieDiLEDScreen(ipInfo["贴底"]);
+                            break;
+                        default:
+                            Console.ForegroundColor = ConsoleColor.DarkGreen;
+                            Console.WriteLine("包装，Port：" + ipInfo["包装"][1].ToString());
+                            Console.ForegroundColor = ConsoleColor.White;
+                            InitialBaoZhuangLEDScreen(ipInfo["包装"]);
+                            break;
+                    }
                 }
             }
         }
 
-        private static void InitialRuXuanLEDScreen(SerialPort comPort)
+        private static void InitialRuXuanLEDScreen(string[] ipList= null,SerialPort comPort = null)
         {
-            CommWithLedController comm = new CommWithLedController(comPort, 255);
-            comm.SetScreenDisplayMode();
-            Console.WriteLine(comm.commuStatus);
-            comm.SendDataPack("清洁度 0", 0, 0, 0, 16);
-            comm.SendDataPack("针车不良 0", 0, 18, 0, 16);
-            comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
-            comPort.Close();
+            if (comPort != null)
+            {
+                CommWithLedController comm = new CommWithLedController(2, null, comPort);
+                //Console.WriteLine(CommuTcp.IsSocketConnected().ToString());
+                comm.SetScreenDisplayMode();
+                Console.WriteLine(comm.commuStatus);
+                comm.SendDataPack("清洁度 0", 0, 0, 0, 16);
+                comm.SendDataPack("针车不良 0", 0, 18, 0, 16);
+                comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
+                comPort.Close();
+            }
+            else 
+            {
+                CommWithLedController comm = new CommWithLedController(2, ipList);
+                //Console.WriteLine(CommuTcp.IsSocketConnected().ToString());
+                
+                    comm.SetScreenDisplayMode();
+                    comm.SendDataPack("清洁度 0", 0, 0, 0, 16, true);
+                    comm.SendDataPack("针车不良 0", 0, 18, 0, 16);
+                    comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
+                    //comm.commTcp.NetDisconect();
+                
+            }
         }
 
-        private static void InitialTieDiLEDScreen(SerialPort comPort) 
+        private static void InitialTieDiLEDScreen(string[] ipList = null, SerialPort comPort = null) 
         {
-            CommWithLedController comm = new CommWithLedController(comPort, 255);
-            comm.SetScreenDisplayMode();
-            Console.WriteLine(comm.commuStatus);
-            comm.SendDataPack("高胶 0", 0, 0, 0, 16);
-            comm.SendDataPack("脱胶 0", 0, 18, 0, 16);
-            comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
-            comPort.Close();
+            if (comPort != null)
+            {
+                CommWithLedController comm = new CommWithLedController(1, null, comPort);
+                comm.SetScreenDisplayMode();
+                Console.WriteLine(comm.commuStatus);
+                comm.SendDataPack("高胶 0", 0, 0, 0, 16);
+                comm.SendDataPack("脱胶 0", 0, 18, 0, 16);
+                comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
+                comPort.Close();
+            }
+            else 
+            {
+                CommWithLedController comm = new CommWithLedController(1, ipList);
+                //Console.WriteLine(CommuTcp.IsSocketConnected().ToString());
+                    comm.SetScreenDisplayMode();
+                    comm.SendDataPack("高胶 0", 0, 0, 0, 16, true);
+                    comm.SendDataPack("脱胶 0", 0, 18, 0, 16);
+                    comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
+                    //comm.commTcp.NetDisconect();
+               
+            }
+            
         }
 
-        private static void InitialBaoZhuangLEDScreen(SerialPort comPort) 
+        private static void InitialBaoZhuangLEDScreen(string[] ipList = null, SerialPort comPort = null) 
         {
-            CommWithLedController comm = new CommWithLedController(comPort, 255);
-            comm.SetScreenDisplayMode();
-            Console.WriteLine(comm.commuStatus);
-            comm.SendDataPack("目标0     节拍0", 0, 0, 0, 16);
-            comm.SendDataPack("加工投料 0", 0, 18, 0, 16);
-            comm.SendDataPack("包装数量 0", 0, 36, 0, 16);
-            comm.SendDataPack("回收数量 0", 0, 54, 0, 16);
-            comPort.Close();
+            if (comPort != null)
+            {
+                CommWithLedController comm = new CommWithLedController(3, null, comPort);
+                comm.SetScreenDisplayMode();
+                Console.WriteLine(comm.commuStatus);
+                comm.SendDataPack("目标0     节拍0", 0, 0, 0, 16);
+                comm.SendDataPack("加工投料 0", 0, 18, 0, 16);
+                comm.SendDataPack("包装数量 0", 0, 36, 0, 16);
+                comm.SendDataPack("回收数量 0", 0, 54, 0, 16);
+                comPort.Close();
+            }
+            else
+            {
+                 CommWithLedController comm = new CommWithLedController(3, ipList);
+                    //Console.WriteLine(CommuTcp.IsSocketConnected().ToString());
+                    comm.SetScreenDisplayMode();
+                    comm.SendDataPack("目标0     节拍0", 0, 0, 0, 16, true);
+                    comm.SendDataPack("加工投料 0", 0, 18, 0, 16);
+                    comm.SendDataPack("包装数量 0", 0, 36, 0, 16);
+                    comm.SendDataPack("回收数量 0", 0, 54, 0, 16);
+                    //comm.commTcp.NetDisconect();
+                
+            }
         }
     }
 
@@ -213,16 +377,30 @@ namespace ledcontrol
         private byte[] pCommuTx = new byte[70];
         private byte[] pTxBuf = new byte[70];
         private int txLength = 0;
+        private bool isTcp = false;
+        public CommuTcp commTcp = null;
 
-        public CommWithLedController(SerialPort com, int screenId)
+        public CommWithLedController( int screenId, string[] ipInfo = null, SerialPort com = null)
         {
             this.comPort = com;
-            this.comPort.Open();
-            this.comPort.DataReceived += new SerialDataReceivedEventHandler(this.CheckReturnData);
+            if (comPort != null) 
+            {
+                this.comPort.Open();
+                this.comPort.DataReceived += new SerialDataReceivedEventHandler(this.CheckReturnData);
+            } 
             this.sSyncCommu.Head = (byte)253;
             CommWithLedController.sCommuAtt.ScreenId = Convert.ToByte(screenId);
             CommWithLedController.sCommuAtt.BaudRate = 9600; //串口波特率 9600 / 38400 /115200
             CommWithLedController.sCommuAtt.ComNo = (byte)0;
+            if (ipInfo != null) 
+            {
+                sCommuAtt.IpAdd = ipInfo[0];
+                sCommuAtt.Port = Convert.ToInt32(ipInfo[1]);
+                isTcp = true;
+                commTcp = new CommuTcp(sCommuAtt);
+                //Console.WriteLine(CommuTcp.sCommuAtt.Port.ToString());
+                commTcp.NetConect();
+            }
             this.cRxNumber = (byte)0;
         }
 
@@ -257,45 +435,107 @@ namespace ledcontrol
         // 初始化屏幕病设置显示模式为二次开发模式
         public void SetScreenDisplayMode()
         {
+            pTxBuf = new byte[64];
+            pCommuTx = new byte[70];
+            if (!isTcp)
+            {
+                if (!comPort.IsOpen) { comPort.Open(); }
+            }
             byte[] pBuf20 = new byte[32];
             pBuf20[0] = 2;
             pBuf20[1] = Convert.ToByte(0);
-            pTxBuf[0] = 5;
+            pTxBuf[0] = (byte)5;
             pBuf20.CopyTo(pTxBuf, 1);
-            int txLength = 3;
+            txLength = 3;
             sCommuAtt.ScreenId = 255;
             int commu_tx = ProtocolDevIo.CreateCommuPack(pCommuTx, pTxBuf, sCommuAtt.ScreenId, sCommuAtt.ComNo, Convert.ToByte(txLength));
-            comPort.Write(new byte[64], 0, commu_tx);
-            Thread.Sleep(100);
+            if (!isTcp)
+            {
+                comPort.Write(pCommuTx, 0, commu_tx);
+                Thread.Sleep(200);
+                CheckCommuStatus();
+            }
+            else
+            {
+                commTcp.sleepIntervel = 400;
+                switch (commTcp.TxAppPack(pCommuTx, pTxBuf, txLength))
+                {
+                    case -1:
+                        Console.WriteLine("应用数据异常");
+                        this.cRxNumber = (byte)8;
+                        break;
+                    case 0:
+                        Console.WriteLine("发送成功");
+                        this.cRxNumber = (byte)8;
+                        break;
+                    case 1:
+                        Console.WriteLine("终端未响应");
+                        this.cRxNumber = (byte)8;
+                        break;
+                }
+            }
             this.CleanLEDContents();//设置之后先清除屏幕内容
         }
 
         //清除屏幕内容
         public void CleanLEDContents()
         {
-            pTxBuf[0] = 16; //16是清屏幕的操作类型
-            int commu_tx = ProtocolDevIo.CreateCommuPack(pCommuTx, pTxBuf, sCommuAtt.ScreenId, sCommuAtt.ComNo, Convert.ToByte(1));
-            this.comPort.Write(pCommuTx, 0, commu_tx);
-            Thread.Sleep(200);
-            if (ProtocolDevIo.CheckCommuPack(this.pRxBuf, (int)this.cRxNumber))
+            if (!isTcp)
             {
-                if (this.pRxBuf[4] == (byte)0)
+                if (!comPort.IsOpen) { comPort.Open(); }
+            }
+            this.cRxNumber = (byte)0;
+            pCommuTx = new byte[64];
+            pTxBuf = new byte[32];
+            pTxBuf[0] = (byte)16;
+            int commu_tx = ProtocolDevIo.CreateCommuPack(pCommuTx, pTxBuf, sCommuAtt.ScreenId, sCommuAtt.ComNo, Convert.ToByte(1));
+            if (!isTcp)
+            {
+                this.comPort.Write(pCommuTx, 0, commu_tx);
+                Thread.Sleep(100);
+                if (ProtocolDevIo.CheckCommuPack(this.pRxBuf, (int)this.cRxNumber))
                 {
-                    this.commuStatus = "清除屏幕指令发送成功";
-                    this.cRxNumber = (byte)0;
+                    if (this.pRxBuf[4] == (byte)0)
+                    {
+                        this.commuStatus = "清除屏幕指令发送成功";
+                        this.cRxNumber = (byte)0;
+                    }
+                    else
+                        this.commuStatus = "清除屏幕指令应用数据异常";
                 }
                 else
-                    this.commuStatus = "清除屏幕指令应用数据异常";
+                {
+                    this.commuStatus = "清除屏幕指令终端无返回";
+                }
             }
             else
             {
-                this.commuStatus = "清除屏幕指令终端无返回";
+                switch (commTcp.TxAppPack(pCommuTx, pTxBuf, 1))
+                {
+                    case -1:
+                        Console.WriteLine("应用数据异常");
+                        this.cRxNumber = (byte)8;
+                        break;
+                    case 0:
+                        Console.WriteLine("发送成功");
+                        this.cRxNumber = (byte)8;
+                        break;
+                    case 1:
+                        Console.WriteLine("终端未响应");
+                        this.cRxNumber = (byte)8;
+                        break;
+                }
             }
         }
 
         //发送文本数据包到 LED 屏幕
-        public void SendDataPack(string text, int xPos, int yPos, int space, int fontSize)
+        public void SendDataPack(string text, int xPos, int yPos, int space, int fontSize , bool isFirst = false)
         {
+            if (!isTcp)
+            {
+                if (!comPort.IsOpen) { comPort.Open(); }
+            }
+            //byte[] numArray2 = new byte[70];
             byte[] pBuf20 = new byte[70];
             pBuf20 = Encoding.Default.GetBytes(text);
             sDispText.XPos = Convert.ToUInt16(xPos);
@@ -306,32 +546,38 @@ namespace ledcontrol
             sDispText.Size = Convert.ToByte(fontSize);
             sDispText.Color = Convert.ToByte(1);
             pCommuTx = new byte[70];
-            pTxBuf = new byte[70];
-            pTxBuf[0] = 23;
-            pBuf20 = new byte[32];
-            pBuf20 = StructToBytes(sDispText, Marshal.SizeOf(sDispText));
-            pBuf20.CopyTo(pTxBuf, 1);
-            txLength = 1 + Marshal.SizeOf(sDispText); ;
+            pTxBuf = new byte[64];
+            pTxBuf[0] = (byte)23;            
+            StructToBytes((object)sDispText, Marshal.SizeOf((object)sDispText)).CopyTo((Array) pTxBuf,1);
+            //pBuf20.CopyTo(pTxBuf, 1);
+            txLength = 1 + Marshal.SizeOf((object)sDispText); ;
             pBuf20 = Encoding.Default.GetBytes(text);
             pBuf20.CopyTo(pTxBuf, 1 + Marshal.SizeOf(sDispText));
             txLength += pBuf20.Length;
             int com_tx = ProtocolDevIo.CreateCommuPack(pCommuTx, pTxBuf, sCommuAtt.ScreenId, sCommuAtt.ComNo, Convert.ToByte(txLength));
-            comPort.Write(pCommuTx, 0, com_tx);
-            Thread.Sleep(200);
-            if (this.cRxNumber > (byte)7)
+            if (!isTcp)
             {
-                if (ProtocolDevIo.CheckCommuPack(this.pRxBuf, (int)this.cRxNumber))
+                comPort.Write(pCommuTx, 0, com_tx);
+                Thread.Sleep(200);
+                if (this.cRxNumber > (byte)7)
                 {
-                    if (this.pRxBuf[4] == (byte)0)
+                    if (ProtocolDevIo.CheckCommuPack(this.pRxBuf, (int)this.cRxNumber))
                     {
-                        Console.WriteLine("文字内容：(" + text + ")发送成功");
-                        this.cRxNumber = (byte)0;
+                        if (this.pRxBuf[4] == (byte)0)
+                        {
+                            Console.WriteLine("文字内容：(" + text + ")发送成功");
+                            this.cRxNumber = (byte)0;
+                        }
+                        else
+                        {
+                            Console.WriteLine("文字发送应用数据异常");
+                        }
+
                     }
                     else
                     {
-                        Console.WriteLine("文字发送应用数据异常");
+                        Console.WriteLine("文字发送终端无返回");
                     }
-
                 }
                 else
                 {
@@ -340,7 +586,30 @@ namespace ledcontrol
             }
             else
             {
-                Console.WriteLine("文字发送终端无返回");
+                if (isFirst)
+                {
+                    commTcp.sleepIntervel = 400;
+                }
+                else 
+                {
+                    commTcp.sleepIntervel = 150;
+                }
+                Console.WriteLine("数据长度：" + txLength);
+                switch (commTcp.TxAppPack(pCommuTx, pTxBuf, txLength))
+                {
+                    case -1:
+                        Console.WriteLine("应用数据异常");
+                        this.cRxNumber = (byte)8;
+                        break;
+                    case 0:
+                        Console.WriteLine("发送成功");
+                        this.cRxNumber = (byte)8;
+                        break;
+                    case 1:
+                        Console.WriteLine("终端未响应");
+                        this.cRxNumber = (byte)8;
+                        break;
+                }
             }
         }
 
@@ -384,7 +653,7 @@ namespace ledcontrol
     }
 
     /// <summary>
-    /// struct COMMU_ATT 用途暂时未知
+    /// struct COMMU_ATT 用于构建 TCP 或 COM 连接
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct COMMU_ATT
@@ -393,10 +662,7 @@ namespace ledcontrol
         public byte ScreenId;
         public byte ComNo;
         public int BaudRate;
-        public int IP0;
-        public int IP1;
-        public int IP2;
-        public int IP3;
+        public string IpAdd;
         public int Port;
     }
 

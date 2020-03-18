@@ -7,4 +7,3 @@ C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\obj\Debug\ledcontrol.ex
 C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\obj\Debug\ledcontrol.pdb
 C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\bin\Debug\ledcontrol.exe
 C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\bin\Debug\ledcontrol.pdb
-C:\Users\Lex Chen\py_proj\com_proj\ledcontrol\ledcontrol\obj\Debug\ledcontrol.csprojResolveAssemblyReference.cache
