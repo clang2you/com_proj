@@ -10,7 +10,10 @@ from datetime import datetime
 from colorama import Fore, Back, Style
 
 test_list = []
-
+pin_list  = ('01', '02','03','04', '05', '06', '07', '08')
+pin_list_2 = ('09', '10', '11', '12', '13', '14','15','16')
+pin_list_3 = ('17', '18', '19', '20', '21', '22','23', '24')
+pin_list_4 = ('25', '26', '27', '28', '29', '30', '31', '32')
 
 class MQService:
     def __init__(self):
@@ -93,6 +96,26 @@ class SerThread:
         else:
             return False
 
+    def GetPinNo(self, filterData, pinList):
+        if filterData == 1 or filterData == 2:
+            data = pinList[filterData - 1]
+            return data
+        elif filterData <= 10:
+            index = filterData // 2
+            index = index if index == 2 else index -1
+            data = pinList[index]
+            return data
+        else:
+            if filterData == 20:
+                data = pinList[5]
+                return data
+            elif filterData == 40:
+                data = pinList[6]
+                return data
+            else:
+                data = pinList[7]
+                return data
+
     def Reader(self):
         while self.alive:
             try:
@@ -100,9 +123,22 @@ class SerThread:
                 n = self.data_com.inWaiting()
                 data = ''
                 if n:
-                    data = self.data_com.read(n).decode('gbk')
-                    print('recv'+' '+time.strftime("%Y-%m-%d %X")+' '+data.strip())
-                    test_list.append('Pin:'+data.strip())
+                    data = str(self.data_com.read(n).hex())[8:22]
+                    print(data)
+                    if data[0:2] != "00":
+                        print(data[0:2])
+                        data = self.GetPinNo(int(data[0:2]), pin_list)
+                    elif data[4:6] != "00":
+                        print(data[4:6])
+                        data = self.GetPinNo(int(data[4:6]), pin_list_2)
+                    elif data[8:10] != "00":
+                        print(data[8:10])
+                        data = self.GetPinNo(int(data[8:10]), pin_list_3)
+                    else:
+                        print(data[12:])
+                        data = self.GetPinNo(int(data[12:]), pin_list_4)
+                    print('recv'+' '+time.strftime("%Y-%m-%d %X")+' '+ data)
+                    test_list.append(data)
                     # print (time.strftime("%Y-%m-%d %X:")+data.strip(),file=self.rfile)
                     if len(data) == 1 and ord(data[len(data) - 1]) == 113:
                         break
@@ -120,11 +156,9 @@ class SerThread:
                       Fore.RED + "%s" % len(test_list))
                 print(Style.RESET_ALL + "正在处理数据：" +
                       Fore.MAGENTA + item.replace('Pin:', '针脚=>'))
-                self.dbHandler.InsertDataToDb("01")
+                self.dbHandler.InsertDataToDb(item)
+                print(item)
                 # print(Fore.BLUE + "数据库写入完成")
-                main = "pycsharp.exe"
-                r_v = os.system(main)
-                print(r_v)
                 self.mq_service.WhenDataComesSendMessage()
                 test_list.remove(item)
                 leftCountStr = Style.RESET_ALL + "剩余" + Fore.BLUE + \
