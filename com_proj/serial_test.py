@@ -123,7 +123,7 @@ class SerThread:
                 n = self.data_com.inWaiting()
                 data = ''
                 if n:
-                    data = str(self.data_com.read(n).hex())[8:22]
+                    data = str(self.data_com.read(32).hex())[8:22]
                     print(data)
                     if data[0:2] != "00":
                         print(data[0:2])
