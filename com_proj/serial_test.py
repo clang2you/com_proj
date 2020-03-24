@@ -10,7 +10,11 @@ from datetime import datetime
 from colorama import Fore, Back, Style
 
 test_list = []
-pin_list  = ('01', '02','03','04', '05', '06', '07', '08')
+lastRecord_1 = ""
+lastRecord_2 = ""
+lastRecord_3 = ""
+lastRecord_4 = ""
+pin_list  = ('08', '07', '06', '05', '04', '03', '02', '01')
 pin_list_2 = ('09', '10', '11', '12', '13', '14','15','16')
 pin_list_3 = ('17', '18', '19', '20', '21', '22','23', '24')
 pin_list_4 = ('25', '26', '27', '28', '29', '30', '31', '32')
@@ -90,58 +94,149 @@ class SerThread:
 
             self.thread_read.start()
             self.thread_insert_to_db.start()
-            self.thread_sender.start()
+            # self.thread_sender.start()
 
             return True
         else:
             return False
 
-    def GetPinNo(self, filterData, pinList):
-        if filterData == 1 or filterData == 2:
-            data = pinList[filterData - 1]
-            return data
-        elif filterData <= 10:
-            index = filterData // 2
-            index = index if index == 2 else index -1
-            data = pinList[index]
-            return data
-        else:
-            if filterData == 20:
-                data = pinList[5]
-                return data
-            elif filterData == 40:
-                data = pinList[6]
-                return data
+    def GetPinNo(self,lastRecord, filterData, isFirst):
+        # if filterData == 1 or filterData == 2:
+        #     data = pinList[filterData - 1]
+        #     return data
+        # elif filterData <= 10:
+        #     index = filterData // 2
+        #     index = index if index == 2 else index -1
+        #     data = pinList[index]
+        #     return data
+        # else:
+        #     if filterData == 20:
+        #         data = pinList[5]
+        #         return data
+        #     elif filterData == 40:
+        #         data = pinList[6]
+        #         return data
+        #     else:
+        #         data = pinList[7]
+        #         return data
+        # print(isFirst)
+        signalList = []
+        filterData = int("0x" + filterData, 16)
+        filterData = '{:08b}'.format(filterData)
+        # print(filterData)
+        for index in range(8):
+            # print(index)
+            if not isFirst:
+                if filterData[index] != '0' and lastRecord[index] != '1':
+                    signalList.append(index)
             else:
-                data = pinList[7]
-                return data
+                if filterData[index] !='0':
+                    signalList.append(index)
+        return filterData, signalList
+
+    
+    def InitialLastRecord(self, strData):
+        strData = int("0x" + strData, 16)
+        return '{:08b}'.format(strData)
+
+    def GetResultList(self, lastRecord, data , pinList, isFirst):
+        result = []
+        lastRecord, dataIndex = self.GetPinNo(lastRecord, data, isFirst)
+        print(dataIndex)
+        for index in dataIndex:
+            result.append(pinList[index])
+        return lastRecord, result
+    
+    def cut(self, obj, sec):
+        return [obj[i:i+sec] for i in range(0,len(obj),sec)]
 
     def Reader(self):
+        global lastRecord_1, lastRecord_2, lastRecord_3, lastRecord_4
         while self.alive:
             try:
-                time.sleep(0.05)
+                time.sleep(0.5)
                 n = self.data_com.inWaiting()
                 data = ''
                 if n:
-                    data = str(self.data_com.read(32).hex())[8:22]
-                    print(data)
-                    if data[0:2] != "00":
-                        print(data[0:2])
-                        data = self.GetPinNo(int(data[0:2]), pin_list)
-                    elif data[4:6] != "00":
-                        print(data[4:6])
-                        data = self.GetPinNo(int(data[4:6]), pin_list_2)
-                    elif data[8:10] != "00":
-                        print(data[8:10])
-                        data = self.GetPinNo(int(data[8:10]), pin_list_3)
+                    print("缓冲区大小：" + str(n))
+                    # resultList = []
+                    data = str(self.data_com.read(n).hex())
+                    # print(data)
+                    dataList = []
+                    print("数据大小" + str(len(data)))
+                    if len(data) > 32:
+                        dataList.extend(self.cut(data, 32))
                     else:
-                        print(data[12:])
-                        data = self.GetPinNo(int(data[12:]), pin_list_4)
-                    print('recv'+' '+time.strftime("%Y-%m-%d %X")+' '+ data)
-                    test_list.append(data)
-                    # print (time.strftime("%Y-%m-%d %X:")+data.strip(),file=self.rfile)
-                    if len(data) == 1 and ord(data[len(data) - 1]) == 113:
-                        break
+                        dataList.append(data)
+                    print(dataList)
+                    for item in dataList:
+                        data = item[8:22]
+                        print(data)
+                        if data[0:2] != "00":
+                            ifFirst = False
+                            if len(lastRecord_1) == 0:
+                                lastRecord_1 = self.InitialLastRecord(data[0:2])
+                                ifFirst = True
+                            # print(data[0:2])
+                            # if len(lastRecord_1) == 0:
+                            #     lastRecord_1 = self.InitialLastRecord(data[0:2])
+                            # lastRecord_1, dataIndex = self.GetPinNo(lastRecord_1, int(data[0:2]))
+                            # for index in dataIndex:
+                            #     result.append(pin_list[index])
+                            lastRecord_1, result = self.GetResultList(lastRecord_1, data[0:2], pin_list, ifFirst)
+                            # print(result)
+                            test_list.extend(result)
+                        elif data[4:6] != "00":
+                            # print(data[4:6])
+                            ifFirst = False
+                            if len(lastRecord_2) == 0:
+                                lastRecord_2 = self.InitialLastRecord(data[4:6])
+                                ifFirst = True
+                            print(data[0:2])
+                            # if len(lastRecord_2) == 0:
+                            #     lastRecord_2 = self.InitialLastRecord(data[4:6])
+                            # lastRecord_2, dataIndex = self.GetPinNo(lastRecord_2, int(data[4:6]))
+                            # for index in dataIndex:
+                            #     result.append(pin_list_2[index])
+                            lastRecord_2, result = self.GetResultList(lastRecord_2, data[4:6], pin_list_2, ifFirst)
+                            test_list.extend(result)
+                        elif data[8:10] != "00":
+                            # print(data[8:10])
+                            ifFirst = False
+                            if len(lastRecord_3) == 0:
+                                lastRecord_3 = self.InitialLastRecord(data[8:10])
+                                ifFirst = True
+                            # if len(lastRecord_3) == 0:
+                            #     lastRecord_3 = self.InitialLastRecord(data[8:10])
+                            # lastRecord_3, dataIndex = self.GetPinNo(lastRecord_3, int(data[8:10]))
+                            # for index in dataIndex:
+                            #     result.append(pin_list_3[index])
+                            lastRecord_3, result = self.GetResultList(lastRecord_3, data[8:10], pin_list_3, ifFirst)
+                            test_list.extend(result)
+                        else:
+                            # print(data[12:])
+                            ifFirst = False
+                            if len(lastRecord_2) == 0:
+                                lastRecord_4 = self.InitialLastRecord(data[12:])
+                                ifFirst = True
+                            # if len(lastRecord_4) == 0:
+                            #     lastRecord_4 = self.InitialLastRecord(data[12:])
+                            # lastRecord_4, dataIndex = self.GetPinNo(lastRecord_4, int(data[12:]))
+                            # for index in dataIndex:
+                            #     result.append(pin_list_4[index])
+                            lastRecord_4, result = self.GetResultList(lastRecord_4, data[12:], pin_list_4, ifFirst)
+                            test_list.extend(result)
+                        print('recv'+' '+time.strftime("%Y-%m-%d %X")+' '+ data)
+                        print(test_list)
+                        # test_list.extend(result)
+                        # print (time.strftime("%Y-%m-%d %X:")+data.strip(),file=self.rfile)
+                        if len(data) == 1 and ord(data[len(data) - 1]) == 113:
+                            break
+                else:
+                    lastRecord_1 =""
+                    lastRecord_2 =""
+                    lastRecord_3 =""
+                    lastRecord_4 = ""
             except Exception as ex:
                 print(ex)
 
@@ -336,7 +431,7 @@ class DbHandler():
 
 
 if __name__ == "__main__":
-    os.system("ledcontrol.exe -i")
+    # os.system("ledcontrol.exe -i")
     dbHandler = DbHandler()
     dbHandler.GetTapAtRealtime()
     dbHandler.CallMySQLProcedure("move_data_to_history")
