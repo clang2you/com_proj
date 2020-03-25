@@ -17,10 +17,14 @@ test_list = []
 # lastRecord_2 = ""
 # lastRecord_3 = ""
 # lastRecord_4 = ""
-pin_list  = ('08', '07', '06', '05', '04', '03', '02', '01')
-pin_list_2 = ('16', '15', '14', '13', '12', '11','10','09')
-pin_list_3 = ('24', '23', '22', '21', '20', '19','18', '17')
-pin_list_4 = ('32', '31', '30', '29', '28', '27', '26', '25')
+# pin_list = ('08', '07', '06', '05', '04', '03', '02', '01')
+# pin_list_2 = ('16', '15', '14', '13', '12', '11', '10', '09')
+# pin_list_3 = ('24', '23', '22', '21', '20', '19', '18', '17')
+# pin_list_4 = ('32', '31', '30', '29', '28', '27', '26', '25')
+
+pin_list = {"g1": ('08', '07', '06', '05', '04', '03', '02', '01'), "g2": ('16', '15', '14', '13', '12', '11', '10', '09'), "g3": (
+    '24', '23', '22', '21', '20', '19', '18', '17'), "g4": ('32', '31', '30', '29', '28', '27', '26', '25')}
+
 
 class MQService:
     def __init__(self):
@@ -90,10 +94,11 @@ class SerThread:
         try:
             isOnline = False
             while not isOnline:
-                pingResult  = os.system("ping " + self.cfg.tcp_ip)
+                pingResult = os.system("ping " + self.cfg.tcp_ip)
                 if pingResult == 0:
                     isOnline = True
-            tcp_socket_client.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            tcp_socket_client.setsockopt(
+                socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             tcp_socket_client.settimeout(5.0)
             tcp_socket_client.connect((tcp_ip, int(tcp_port)))
             tcp_socket_client.settimeout(None)
@@ -117,15 +122,14 @@ class SerThread:
         # self.thread_sender.start()
 
             return True
-        
+
         except:
             print("Error")
-            
-        
+
         # else:
         #     return False
 
-    def GetPinNo(self,filterData):
+    def GetPinNo(self, filterData):
         # if filterData == 1 or filterData == 2:
         #     data = pinList[filterData - 1]
         #     return data
@@ -151,33 +155,32 @@ class SerThread:
         # print(filterData)
         for index in range(8):
             # print(index)
-        
-            if filterData[index] !='0':
+
+            if filterData[index] != '0':
                 signalList.append(index)
         return signalList
 
-    
     # def InitialLastRecord(self, strData):
     #     strData = int("0x" + strData, 16)
     #     return '{:08b}'.format(strData)
 
-    def GetResultList(self, data , pinList):
+    def GetResultList(self, data, pinList):
         result = []
         dataIndex = self.GetPinNo(data)
-        print(dataIndex)
+        # print(dataIndex)
         for index in dataIndex:
             result.append(pinList[index])
         return result
-    
+
     def cut(self, obj, sec):
-        return [obj[i:i+sec] for i in range(0,len(obj),sec)]
+        return [obj[i:i+sec] for i in range(0, len(obj), sec)]
 
     def Reader(self):
         global tcp_socket_client, test_list
         # isTimeout = False
         while True:
             try:
-                time.sleep(0.5)
+                time.sleep(1)
                 # lastRecord_1 =""
                 # lastRecord_2 =""
                 # lastRecord_3 =""
@@ -199,67 +202,24 @@ class SerThread:
                     else:
                         dataList.append(data)
                     print(dataList)
-                    lastRecord = []
+                    lastRecord = None
                     for item in dataList:
                         data = item[8:22]
-                        print(data)
+                        print(Fore.BLUE + "Raw Data:" +  data + Style.RESET_ALL)
+                        handleData = {"g1": None, "g2": None,
+                                      "g3": None, "g4": None}
                         if data[0:2] != "00":
-                            # ifFirst = False
-                            # if len(lastRecord_1) == 0:
-                                # lastRecord_1 = self.InitialLastRecord(data[0:2])
-                            #     ifFirst = True
-                            print(data[0:2])
-                            # if len(lastRecord_1) == 0:
-                            #     lastRecord_1 = self.InitialLastRecord(data[0:2])
-                            # lastRecord_1, dataIndex = self.GetPinNo(lastRecord_1, int(data[0:2]))
-                            # for index in dataIndex:
-                            #     result.append(pin_list[index])
-                            result = self.GetResultList(data[0:2], pin_list)
-                            result = self.deleteDuplicatedElementFromList3(result)
-                            for item in result:
-                                if item in lastRecord:
-                                    result.remove(item)
-                            lastRecord = result
-                            # print(result)
-                            test_list.extend(result)
-                        elif data[4:6] != "00":
-                            # print(data[4:6])
-                            # ifFirst = False
-                            # if len(lastRecord_2) == 0:
-                            #     lastRecord_2 = self.InitialLastRecord(data[4:6])
-                            #     ifFirst = True
-                            print(data[0:2])
-                            # if len(lastRecord_2) == 0:
-                            #     lastRecord_2 = self.InitialLastRecord(data[4:6])
-                            # lastRecord_2, dataIndex = self.GetPinNo(lastRecord_2, int(data[4:6]))
-                            # for index in dataIndex:
-                            #     result.append(pin_list_2[index])
-                            result = self.GetResultList(data[4:6], pin_list_2)
-                            result = self.deleteDuplicatedElementFromList3(result)
-                            for item in result:
-                                if item in lastRecord:
-                                    result.remove(item)
-                            lastRecord = result
-                            test_list.extend(result)
-                        elif data[8:10] != "00":
-                            # print(data[8:10])
-                            # ifFirst = False
-                            # if len(lastRecord_3) == 0:
-                            #     lastRecord_3 = self.InitialLastRecord(data[8:10])
-                            #     ifFirst = True
-                            # if len(lastRecord_3) == 0:
-                            #     lastRecord_3 = self.InitialLastRecord(data[8:10])
-                            # lastRecord_3, dataIndex = self.GetPinNo(lastRecord_3, int(data[8:10]))
-                            # for index in dataIndex:
-                            #     result.append(pin_list_3[index])
-                            result = self.GetResultList(data[8:10], pin_list_3)
-                            result = self.deleteDuplicatedElementFromList3(result)
-                            for item in result:
-                                if item in lastRecord:
-                                    result.remove(item)
-                            lastRecord = result
-                            test_list.extend(result)
-                        else:
+                            print("G1 Data: "+ data[0:2])
+                            handleData["g1"] = data[0:2]
+                        if data[4:6] != "00":
+                            print("G2 Data:  " + data[4:6])
+                            handleData["g2"] = data[4:6]
+                        if data[8:10] != "00":
+                            print("G3 Data:  " + data[8:10])
+                            handleData["g3"] = data[8:10]
+                        if data[12:] != "00":
+                            print("G4 Data:  " + data[12:])
+                            handleData["g4"] = data[12:]
                             # print(data[12:])
                             # ifFirst = False
                             # if len(lastRecord_2) == 0:
@@ -270,25 +230,41 @@ class SerThread:
                             # lastRecord_4, dataIndex = self.GetPinNo(lastRecord_4, int(data[12:]))
                             # for index in dataIndex:
                             #     result.append(pin_list_4[index])
-                            result = self.GetResultList(data[12:], pin_list_4)
-                            result = self.deleteDuplicatedElementFromList3(result)
-                            for item in result:
-                                if item in lastRecord:
-                                    result.remove(item)
-                            lastRecord = result
-                            test_list.extend(result)
-                        print('recv'+' '+time.strftime("%Y-%m-%d %X")+' '+ data)
-                        print(test_list)
+                            # result = self.GetResultList(data[12:], pin_list_4)
+                            # result = self.deleteDuplicatedElementFromList3(result)
+                            # for item in result:
+                            #     if item in lastRecord:
+                            #         result.remove(item)
+                            # lastRecord = result
+                            # test_list.extend(result)
+                        if lastRecord == None:
+                            lastRecord = handleData
+                        else:
+                            for item in lastRecord.keys():
+                                if handleData[item] == lastRecord[item]:
+                                    handleData[item] = None
+                                else:
+                                    lastRecord[item] = handleData[item]
+                        print("lastRecord: " + str(lastRecord))
+                        print("handleData: " + str(handleData))
+                        # lastRecord = handleData
+                        for item in handleData.keys():
+                            if handleData[item] != None:
+                                result = self.GetResultList(handleData[item], pin_list[item])
+                                result = self.deleteDuplicatedElementFromList3(result)
+                                test_list.extend(result)
+                                print("Add to Insert List: " + str(result))
+                        print('recv'+' '+time.strftime("%Y-%m-%d %X")+' ' + data)
                         # test_list.extend(result)
                         # print (time.strftime("%Y-%m-%d %X:")+data.strip(),file=self.rfile)
                         if len(data) == 1 and ord(data[len(data) - 1]) == 113:
                             break
-                # else:
+                print(Fore.GREEN + "Insert To Db Data: " + str(test_list) + Style.RESET_ALL)
             except socket.timeout:
                 notConnected = True
                 while notConnected:
                     try:
-                        print(Fore.RED + "读取超时" + Style.RESET_ALL)  
+                        print(Fore.RED + "读取超时" + Style.RESET_ALL)
                         msg = b'test'
                         tcp_socket_client.settimeout(1)
                         tcp_socket_client.send(msg)
@@ -296,14 +272,15 @@ class SerThread:
                         notConnected = False
                     except socket.timeout:
                         # traceback.print_exc()
-                        notConnected = False          
+                        notConnected = False
             except ConnectionResetError:
                 traceback.print_exc()
                 time.sleep(3)
                 notConnected = False
                 while not notConnected:
-                    tcp_socket_client, notConnected = self.TryReconnectTcpServer(notConnected)
-                    
+                    tcp_socket_client, notConnected = self.TryReconnectTcpServer(
+                        notConnected)
+
             # except socket.error as ex:
                 # if type(ex) == type(socket.error) or type(ex) == type(socket.TimeoutError):
                 #     tcp_socket_client.connect((self.cfg.tcp_ip, int(self.cfg.tcp_port)))
@@ -317,29 +294,30 @@ class SerThread:
                 #     except socket.error:
                 #         notConnected = self.ReconnectTCPServer()
                     # except:
-                        # isConnected = False
-    
+                    # isConnected = False
+
     def TryReconnectTcpServer(self, isConnected):
         tcp_socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try :
-            tcp_socket_client.connect((self.cfg.tcp_ip,int(self.cfg.tcp_port)))
+        try:
+            tcp_socket_client.connect(
+                (self.cfg.tcp_ip, int(self.cfg.tcp_port)))
             isConnected = True
-        except :
+        except:
             isConnected = False
         return tcp_socket_client, isConnected
         # notConnected = True
         # while notConnected:
         # tcp_socket_client.close()
-        
-            # notConnected = False
+
+        # notConnected = False
 
     def ReconnectTCPServer(self):
-        print(Fore.RED + "网络中断，尝试重新连接" + Style.RESET_ALL)    
-        tcp_socket_client.connect((self.cfg.tcp_ip,int(self.cfg.tcp_port)))
+        print(Fore.RED + "网络中断，尝试重新连接" + Style.RESET_ALL)
+        tcp_socket_client.connect((self.cfg.tcp_ip, int(self.cfg.tcp_port)))
         return True
 
-    def deleteDuplicatedElementFromList3(self,listA):
-        return sorted(set(listA), key = listA.index)
+    def deleteDuplicatedElementFromList3(self, listA):
+        return sorted(set(listA), key=listA.index)
 
     def func1(self):
         while len(test_list) > 0:
@@ -537,7 +515,7 @@ if __name__ == "__main__":
     dbHandler.GetTapAtRealtime()
     dbHandler.CallMySQLProcedure("move_data_to_history")
     ser = SerThread()
-    
+
     try:
         if ser.start():
             ser.waiting()
