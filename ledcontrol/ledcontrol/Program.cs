@@ -36,9 +36,9 @@ namespace ledcontrol
             //led3Port.DataBits = 8;
             //screenPortDic.Add("包装", led3Port);
             Dictionary<string, string[]> ipList = new Dictionary<string, string[]>();
-            ipList.Add("入楦", new string[] { "172.22.10.240", "5004" });
-            ipList.Add("贴底", new string[] { "172.22.10.240", "5005" });
-            ipList.Add("包装", new string[] { "172.22.10.240", "5006" });
+            ipList.Add("入楦", new string[] { "172.22.1.212", "5004" });
+            ipList.Add("贴底", new string[] { "172.22.1.212", "5005" });
+            ipList.Add("包装", new string[] { "172.22.1.212", "5006" });
             if (args.Length < 1)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
@@ -161,10 +161,10 @@ namespace ledcontrol
             {
                 CommWithLedController comm = new CommWithLedController(255, ipInfo);
                 CountStringNoAndFillSpace(qtys);
-                comm.SendDataPack(qtys[2], 40, 0, 0, 16, true);
-                comm.SendDataPack(qtys[3], 40, 18, 0, 16);
-                comm.SendDataPack(qtys[0], 33, 54, 0, 16);
-                comm.SendDataPack(qtys[1], 105, 54, 0, 16);
+                comm.SendDataPack(qtys[2], 50, 0, 0, 16, true);
+                comm.SendDataPack(qtys[3], 64, 18, 0, 16);
+                comm.SendDataPack(qtys[0], 33, 46, 0, 16);
+                comm.SendDataPack(qtys[1], 95, 46, 0, 16);
             }
             
         }
@@ -176,7 +176,7 @@ namespace ledcontrol
                 CommWithLedController comm = new CommWithLedController(255, null, comPort);
                 CountStringNoAndFillSpace(qtys);
                 comm.SendDataPack(qtys[7], 30, 0, 0, 16);
-                comm.SendDataPack(qtys[8], 110, 0, 0, 16);
+                comm.SendDataPack(qtys[8], 105, 0, 0, 16);
                 comm.SendDataPack(qtys[0], 70, 18, 0, 16);
                 comm.SendDataPack(qtys[1], 70, 36, 0, 16);
                 comm.SendDataPack(qtys[6], 70, 54, 0, 16);
@@ -187,10 +187,10 @@ namespace ledcontrol
                 CommWithLedController comm = new CommWithLedController(255, ipInfo);
                 CountStringNoAndFillSpace(qtys);
                 comm.SendDataPack(qtys[7], 33, 0, 0, 16, true);
-                comm.SendDataPack(qtys[8], 113, 0, 0, 16);
+                comm.SendDataPack(qtys[8], 96, 0, 0, 16);
                 comm.SendDataPack(qtys[0], 70, 18, 0, 16);
-                comm.SendDataPack(qtys[1], 70, 36, 0, 16);
-                comm.SendDataPack(qtys[6], 70, 54, 0, 16);
+                comm.SendDataPack(qtys[1], 70, 32, 0, 16);
+                comm.SendDataPack(qtys[6], 70, 48, 0, 16);
             }
         }
 
@@ -213,8 +213,8 @@ namespace ledcontrol
                 CountStringNoAndFillSpace(qtys);
                 comm.SendDataPack(qtys[4], 40, 0, 0, 16, true);
                 comm.SendDataPack(qtys[5], 40, 18, 0, 16);
-                comm.SendDataPack(qtys[0], 33, 54, 0, 16);
-                comm.SendDataPack(qtys[1], 105, 54, 0, 16);
+                comm.SendDataPack(qtys[0], 33, 46, 0, 16);
+                comm.SendDataPack(qtys[1], 95, 46, 0, 16);
             }
             
         }
@@ -288,24 +288,24 @@ namespace ledcontrol
         {
             if (comPort != null)
             {
-                CommWithLedController comm = new CommWithLedController(2, null, comPort);
+                CommWithLedController comm = new CommWithLedController(255, null, comPort);
                 //Console.WriteLine(CommuTcp.IsSocketConnected().ToString());
                 comm.SetScreenDisplayMode();
                 Console.WriteLine(comm.commuStatus);
                 comm.SendDataPack("清洁度 0", 0, 0, 0, 16);
                 comm.SendDataPack("针车不良 0", 0, 18, 0, 16);
-                comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
+                comm.SendDataPack("投料0  包装0", 0, 40, 0, 16);
                 comPort.Close();
             }
             else 
             {
-                CommWithLedController comm = new CommWithLedController(2, ipList);
+                CommWithLedController comm = new CommWithLedController(255, ipList);
                 //Console.WriteLine(CommuTcp.IsSocketConnected().ToString());
                 
                     comm.SetScreenDisplayMode();
                     comm.SendDataPack("清洁度 0", 0, 0, 0, 16, true);
                     comm.SendDataPack("针车不良 0", 0, 18, 0, 16);
-                    comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
+                    comm.SendDataPack("投料0   包装0   ", 0, 46, 0, 16);
                     //comm.commTcp.NetDisconect();
                 
             }
@@ -315,7 +315,7 @@ namespace ledcontrol
         {
             if (comPort != null)
             {
-                CommWithLedController comm = new CommWithLedController(1, null, comPort);
+                CommWithLedController comm = new CommWithLedController(255, null, comPort);
                 comm.SetScreenDisplayMode();
                 Console.WriteLine(comm.commuStatus);
                 comm.SendDataPack("高胶 0", 0, 0, 0, 16);
@@ -325,12 +325,12 @@ namespace ledcontrol
             }
             else 
             {
-                CommWithLedController comm = new CommWithLedController(1, ipList);
+                CommWithLedController comm = new CommWithLedController(255, ipList);
                 //Console.WriteLine(CommuTcp.IsSocketConnected().ToString());
                     comm.SetScreenDisplayMode();
                     comm.SendDataPack("高胶 0", 0, 0, 0, 16, true);
                     comm.SendDataPack("脱胶 0", 0, 18, 0, 16);
-                    comm.SendDataPack("投料0    包装0", 0, 54, 0, 16);
+                    comm.SendDataPack("投料0   包装0   ", 0, 46, 0, 16);
                     //comm.commTcp.NetDisconect();
                
             }
@@ -341,24 +341,24 @@ namespace ledcontrol
         {
             if (comPort != null)
             {
-                CommWithLedController comm = new CommWithLedController(3, null, comPort);
+                CommWithLedController comm = new CommWithLedController(255, null, comPort);
                 comm.SetScreenDisplayMode();
                 Console.WriteLine(comm.commuStatus);
-                comm.SendDataPack("目标0     节拍0", 0, 0, 0, 16);
+                comm.SendDataPack("目标0  节拍0", 0, 0, 0, 16);
                 comm.SendDataPack("加工投料 0", 0, 18, 0, 16);
                 comm.SendDataPack("包装数量 0", 0, 36, 0, 16);
-                comm.SendDataPack("回收数量 0", 0, 54, 0, 16);
+                comm.SendDataPack("回收数量 0", 0, 48, 0, 16);
                 comPort.Close();
             }
             else
             {
-                 CommWithLedController comm = new CommWithLedController(3, ipList);
+                 CommWithLedController comm = new CommWithLedController(255, ipList);
                     //Console.WriteLine(CommuTcp.IsSocketConnected().ToString());
                     comm.SetScreenDisplayMode();
-                    comm.SendDataPack("目标0     节拍0", 0, 0, 0, 16, true);
-                    comm.SendDataPack("加工投料 0", 0, 18, 0, 16);
-                    comm.SendDataPack("包装数量 0", 0, 36, 0, 16);
-                    comm.SendDataPack("回收数量 0", 0, 54, 0, 16);
+                    comm.SendDataPack("目标0   节拍0", 0, 0, 0, 16, true);
+                    comm.SendDataPack("加工投料 0", 0, 15, 0, 16);
+                    comm.SendDataPack("包装数量 0", 0, 32, 0, 16);
+                    comm.SendDataPack("回收数量 0", 0, 48, 0, 16);
                     //comm.commTcp.NetDisconect();
                 
             }
