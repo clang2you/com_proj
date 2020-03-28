@@ -119,7 +119,7 @@ class SerThread:
 
             self.thread_read.start()
             self.thread_insert_to_db.start()
-        # self.thread_sender.start()
+            self.thread_sender.start()
 
             return True
 
@@ -189,14 +189,16 @@ class SerThread:
                 tcp_socket_client.settimeout(1.0)
                 data = tcp_socket_client.recv(1024).hex()
                 tcp_socket_client.settimeout(None)
+                result = []
+                # print(result)
                 print(data)
                 if len(data) > 0:
-                    print("缓冲区大小：" + str(len(data)))
+                    # print("缓冲区大小：" + str(len(data)))
                     # resultList = []
                     data = str(data)
                     # print(data)
                     dataList = []
-                    print("数据大小" + str(len(data)))
+                    # print("数据大小" + str(len(data)))
                     if len(data) > 32:
                         dataList.extend(self.cut(data, 32))
                     else:
@@ -237,6 +239,7 @@ class SerThread:
                             #         result.remove(item)
                             # lastRecord = result
                             # test_list.extend(result)
+                        print(result)
                         if lastRecord == None:
                             lastRecord = handleData
                         else:
@@ -250,16 +253,23 @@ class SerThread:
                         # lastRecord = handleData
                         for item in handleData.keys():
                             if handleData[item] != None:
-                                result = self.GetResultList(handleData[item], pin_list[item])
-                                result = self.deleteDuplicatedElementFromList3(result)
-                                test_list.extend(result)
-                                print("Add to Insert List: " + str(result))
+                                # print(result)
+                                # print(self.GetResultList(handleData[item], pin_list[item]))
+                                # if result == None:
+                                #     result = self.GetResultList(handleData[item], pin_list[item])
+                                # else:
+                                #     result = result.extend(self.GetResultList(handleData[item], pin_list[item]))
+                                result = result + self.GetResultList(handleData[item], pin_list[item])
+                                print(Back.LIGHTCYAN_EX + Fore.BLACK + "Add to Insert List: " + str(result) + Style.RESET_ALL)
                         print('recv'+' '+time.strftime("%Y-%m-%d %X")+' ' + data)
                         # test_list.extend(result)
                         # print (time.strftime("%Y-%m-%d %X:")+data.strip(),file=self.rfile)
                         if len(data) == 1 and ord(data[len(data) - 1]) == 113:
                             break
-                print(Fore.GREEN + "Insert To Db Data: " + str(test_list) + Style.RESET_ALL)
+                # print(Fore.RED + "未去重复项结果：" + str(result) + Style.RESET_ALL)
+                result = self.deleteDuplicatedElementFromList3(result)
+                print(Fore.GREEN + "Insert To Db Data: " + str(result) + Style.RESET_ALL)
+                test_list.extend(result)
             except socket.timeout:
                 notConnected = True
                 while notConnected:
@@ -281,21 +291,6 @@ class SerThread:
                     tcp_socket_client, notConnected = self.TryReconnectTcpServer(
                         notConnected)
 
-            # except socket.error as ex:
-                # if type(ex) == type(socket.error) or type(ex) == type(socket.TimeoutError):
-                #     tcp_socket_client.connect((self.cfg.tcp_ip, int(self.cfg.tcp_port)))
-                # if type(ex) == type(socket.ConnectionResetError):
-                #     print("OK")
-                # notConnected = True
-                # while notConnected:
-                #     # try:
-                #     try:
-                #         notConnected = self.ReconnectTCPServer()
-                #     except socket.error:
-                #         notConnected = self.ReconnectTCPServer()
-                    # except:
-                    # isConnected = False
-
     def TryReconnectTcpServer(self, isConnected):
         tcp_socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
@@ -305,11 +300,6 @@ class SerThread:
         except:
             isConnected = False
         return tcp_socket_client, isConnected
-        # notConnected = True
-        # while notConnected:
-        # tcp_socket_client.close()
-
-        # notConnected = False
 
     def ReconnectTCPServer(self):
         print(Fore.RED + "网络中断，尝试重新连接" + Style.RESET_ALL)
@@ -321,26 +311,26 @@ class SerThread:
 
     def func1(self):
         while len(test_list) > 0:
-            time.sleep(1)
+            time.sleep(0.5)
             for item in test_list:
                 # time.sleep(1)
-                print("\n" + Back.YELLOW + Fore.BLACK +
-                      "===========START===========" + Style.RESET_ALL)
-                print(Style.RESET_ALL + "已接收到的数据总条数: " +
-                      Fore.RED + "%s" % len(test_list))
-                print(Style.RESET_ALL + "正在处理数据：" +
-                      Fore.MAGENTA + item.replace('Pin:', '针脚=>'))
+                # print("\n" + Back.YELLOW + Fore.BLACK +
+                #       "===========START===========" + Style.RESET_ALL)
+                # print(Style.RESET_ALL + "已接收到的数据总条数: " +
+                #       Fore.RED + "%s" % len(test_list))
+                # print(Style.RESET_ALL + "正在处理数据：" +
+                #       Fore.MAGENTA + item.replace('Pin:', '针脚=>'))
                 self.dbHandler.InsertDataToDb(item)
                 print(item)
                 # print(Fore.BLUE + "数据库写入完成")
                 self.mq_service.WhenDataComesSendMessage()
                 test_list.remove(item)
-                leftCountStr = Style.RESET_ALL + "剩余" + Fore.BLUE + \
-                    "%s" % len(test_list) + Style.RESET_ALL + "条数据未处理。"
-                finishCountStr = Style.RESET_ALL + Fore.BLUE + "所有数据已写入数据库。" + Style.RESET_ALL
-                print(finishCountStr if len(test_list) == 0 else leftCountStr)
-                print(Back.LIGHTCYAN_EX + Fore.BLACK +
-                      "===========STOP============" + Style.RESET_ALL + "\n")
+                # leftCountStr = Style.RESET_ALL + "剩余" + Fore.BLUE + \
+                #     "%s" % len(test_list) + Style.RESET_ALL + "条数据未处理。"
+                # finishCountStr = Style.RESET_ALL + Fore.BLUE + "所有数据已写入数据库。" + Style.RESET_ALL
+                # print(finishCountStr if len(test_list) == 0 else leftCountStr)
+                # print(Back.LIGHTCYAN_EX + Fore.BLACK +
+                #       "===========STOP============" + Style.RESET_ALL + "\n")
         # print('当前线程数为{}'.format(threading.activeCount()))
         t = threading.Timer(0.5, self.func1)
         t.start()
@@ -480,8 +470,8 @@ class DbHandler():
         sum(if(type = '{4}', qty, 0)) as {4},
         sum(if(type = '{5}', qty, 0)) as {5},
         sum(if(defType is not NULL, qty, 0)) as {6}
-        from realtime_input WHERE TO_DAYS(NOW()) = TO_DAYS(time)""".format(self.paraType["1"],
-                                                                           self.paraType["2"], self.paraType["3"], self.paraType["4"], self.paraType["5"], self.paraType["6"], self.paraType["7"])
+        from realtime_input WHERE TO_DAYS(NOW()) = TO_DAYS(time) and line = '{7}'""".format(self.paraType["1"],
+                                                                           self.paraType["2"], self.paraType["3"], self.paraType["4"], self.paraType["5"], self.paraType["6"], self.paraType["7"], self.cfg.line_name)
         for row in self.runQuerySql(sql):
             for item in row:
                 paraList.append(str(item) if item != None else str(0))
@@ -510,7 +500,7 @@ class DbHandler():
 
 
 if __name__ == "__main__":
-    # os.system("ledcontrol.exe -i")
+    os.system("ledcontrol.exe -i")
     dbHandler = DbHandler()
     dbHandler.GetTapAtRealtime()
     dbHandler.CallMySQLProcedure("move_data_to_history")
